@@ -1,26 +1,88 @@
 @import "tailwindcss";
+@import "@heroui/styles";
+
+/* Import order matters: tailwindcss, then @heroui/styles, then our overrides below. */
+
+/* @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"); */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --rr-bg: #14211a;
+  --rr-bg-2: #1b2c22;
+  --rr-surface: #203528;
+  --rr-surface-2: #26402f;
+  --rr-hairline: rgba(201, 169, 92, 0.16);
+  --rr-paper: #f3ecdc;
+  --rr-ink: #eee6d4;
+  --rr-ink-dim: #b9c3b6;
+  --rr-gold: #c9a45c;
+  --rr-gold-bright: #e0bf7c;
+  --rr-wine: #8a4a3f;
+  --rr-wine-bright: #b3675a;
+  --rr-sage: #7fa37c;
+  --rr-slate: #7592ab;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: radial-gradient(1200px 700px at 15% -10%, var(--rr-bg-2) 0%, var(--rr-bg) 55%);
+  color: var(--rr-ink);
+  font-family: "Inter", sans-serif;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: "Fraunces", serif;
+}
+
+.font-mono-label {
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
+}
+
+/* Retint HeroUI's default component classes to match the reading-room palette.
+   HeroUI v3 uses BEM classes, so we override them in @layer components to
+   keep the cascade predictable (see HeroUI styling docs). */
+@layer components {
+  .card {
+    background-color: var(--rr-surface);
+    border-color: var(--rr-hairline);
+  }
+
+  .table-root--primary {
+    background-color: transparent;
+  }
+
+  .table__header {
+    background-color: transparent;
+  }
+
+  .table__column {
+    color: var(--rr-ink-dim);
+    font-family: "IBM Plex Mono", monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 10.5px;
+  }
+
+  .table__row {
+    border-color: var(--rr-hairline);
+  }
+
+  .table__cell {
+    color: var(--rr-ink);
+  }
+
+  .chip--warning.chip--soft {
+    background-color: rgba(201, 169, 92, 0.16);
+    color: var(--rr-gold-bright);
+  }
+
+  .chip--accent.chip--soft {
+    background-color: rgba(117, 146, 171, 0.16);
+    color: #a9c2d6;
+  }
+
+  .chip--success.chip--soft {
+    background-color: rgba(127, 163, 124, 0.16);
+    color: #a9caa5;
+  }
 }
