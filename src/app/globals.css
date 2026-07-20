@@ -1,11 +1,31 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-/* Import order matters: tailwindcss, then @heroui/styles, then our overrides below. */
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:is(.dark *));
 
-/* @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"); */
-
+/* ─── Light theme (default) ─── */
 :root {
+  --rr-bg: #f8f6f1;
+  --rr-bg-2: #f0ece3;
+  --rr-surface: #ffffff;
+  --rr-surface-2: #f3f0e8;
+  --rr-hairline: rgba(120, 100, 60, 0.15);
+  --rr-paper: #1a1a1a;
+  --rr-ink: #1a1a1a;
+  --rr-ink-dim: #6b6b6b;
+  --rr-gold: #a07828;
+  --rr-gold-bright: #c49a3c;
+  --rr-wine: #9e3b2e;
+  --rr-wine-bright: #c44e3e;
+  --rr-sage: #3d7a38;
+  --rr-slate: #3a6b8a;
+  --rr-white: #ffffff;
+  --rr-black: #000000;
+}
+
+/* ─── Dark theme ─── */
+.dark {
   --rr-bg: #14211a;
   --rr-bg-2: #1b2c22;
   --rr-surface: #203528;
@@ -20,13 +40,20 @@
   --rr-wine-bright: #b3675a;
   --rr-sage: #7fa37c;
   --rr-slate: #7592ab;
+  --rr-white: #1a1a1a;
+  --rr-black: #ffffff;
 }
 
+/* ─── Base styles ─── */
 body {
-  background: radial-gradient(1200px 700px at 15% -10%, var(--rr-bg-2) 0%, var(--rr-bg) 55%);
+  background: var(--rr-bg);
   color: var(--rr-ink);
   font-family: "Inter", sans-serif;
   min-height: 100vh;
+}
+
+.dark body {
+  background: radial-gradient(1200px 700px at 15% -10%, var(--rr-bg-2) 0%, var(--rr-bg) 55%);
 }
 
 .font-display {
@@ -38,9 +65,7 @@ body {
   letter-spacing: 0.08em;
 }
 
-/* Retint HeroUI's default component classes to match the reading-room palette.
-   HeroUI v3 uses BEM classes, so we override them in @layer components to
-   keep the cascade predictable (see HeroUI styling docs). */
+/* ─── HeroUI component retints ─── */
 @layer components {
   .card {
     background-color: var(--rr-surface);
@@ -78,11 +103,18 @@ body {
 
   .chip--accent.chip--soft {
     background-color: rgba(117, 146, 171, 0.16);
-    color: #a9c2d6;
+    color: var(--rr-slate);
   }
 
   .chip--success.chip--soft {
     background-color: rgba(127, 163, 124, 0.16);
-    color: #a9caa5;
+    color: var(--rr-sage);
   }
+}
+
+/* ─── Smooth theme transitions ─── */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
 }

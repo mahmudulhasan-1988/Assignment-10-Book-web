@@ -6,28 +6,19 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { StatCard } from "./StatCard";
-import type { AdminOverview } from "@/types/admin";
 
-// Ledger-inspired palette derived from the dashboard's ink/gold token system.
-const CATEGORY_COLORS = [
-  "#8A5A2B", // gold-700
-  "#B4802F", // gold-600
-  "#D9A441", // gold-500
-  "#E4C077", // gold-400
-  "#2F4157", // ink-700
-  "#4A617A", // ink-500
-  "#7C93A8", // ink-300
-];
+interface OverviewSectionProps {
+  stats: any;
+  totalBooks: number;
+  totalUsers: number;
+  totalDeliveries: number;
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -37,104 +28,119 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function OverviewSection({ overview }: { overview: AdminOverview }) {
+export function OverviewSection({ stats, totalBooks, totalUsers, totalDeliveries }: OverviewSectionProps) {
+  const bookStatusData = [
+    { name: "Available", value: totalBooks - (stats?.pendingBooks || 0) },
+    { name: "Pending", value: stats?.pendingBooks || 0 },
+  ];
+
+  const deliveryStatusData = [
+    { name: "Active", value: stats?.pendingDeliveries || 0 },
+    { name: "Completed", value: totalDeliveries - (stats?.pendingDeliveries || 0) },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Total users"
-          value={overview.totalUsers.toLocaleString()}
-          growthPct={overview.userGrowthPct}
+          label="Total Users"
+          value={totalUsers.toLocaleString()}
           icon={Users}
+          color="text-[var(--rr-gold)]"
         />
         <StatCard
-          label="Total books"
-          value={overview.totalBooks.toLocaleString()}
-          growthPct={overview.bookGrowthPct}
+          label="Total Books"
+          value={totalBooks.toLocaleString()}
           icon={BookOpen}
+          color="text-[var(--rr-sage)]"
         />
         <StatCard
-          label="Total deliveries"
-          value={overview.totalDeliveries.toLocaleString()}
-          growthPct={overview.deliveryGrowthPct}
+          label="Total Deliveries"
+          value={totalDeliveries.toLocaleString()}
           icon={Truck}
+          color="text-[var(--rr-slate)]"
         />
         <StatCard
-          label="Total revenue"
-          value={formatCurrency(overview.totalRevenue)}
-          growthPct={overview.revenueGrowthPct}
+          label="Pending Approvals"
+          value={(stats?.pendingBooks || 0).toString()}
           icon={Wallet}
+          color="text-[var(--rr-wine)]"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <Card variant="default" className="border border-ink-100 xl:col-span-2">
-          <Card.Header className="p-5 pb-0">
-            <Card.Title className="font-serif text-lg text-ink-900">
-              Books by category
-            </Card.Title>
-            <Card.Description>Share of catalog per genre</Card.Description>
-          </Card.Header>
-          <Card.Content className="p-5">
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={overview.booksByCategory}
-                  dataKey="count"
-                  nameKey="category"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                >
-                  {overview.booksByCategory.map((entry, index) => (
-                    <Cell
-                      key={entry.category}
-                      fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]}
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {/* Books Status Chart */}
+        <div className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-5">
+          <h3 className="mb-4 text-lg font-semibold text-[var(--rr-ink)]">
+            Book Status Distribution
+          </h3>
+          <div className="space-y-3">
+            {bookStatusData.map((item) => (
+              <div key={item.name} className="flex items-center justify-between">
+                <span className="text-sm text-[var(--rr-ink-dim)]">{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-32 overflow-hidden rounded-full bg-[var(--rr-surface-2)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--rr-gold)]"
+                      style={{ width: `${totalBooks > 0 ? (item.value / totalBooks) * 100 : 0}%` }}
                     />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number, name: string) => [`${value} books`, name]}
-                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                />
-                <Legend
-                  layout="vertical"
-                  align="right"
-                  verticalAlign="middle"
-                  wrapperStyle={{ fontSize: 12 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card.Content>
-        </Card>
+                  </div>
+                  <span className="text-sm font-medium text-[var(--rr-ink)]">{item.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        <Card variant="default" className="border border-ink-100 xl:col-span-3">
-          <Card.Header className="p-5 pb-0">
-            <Card.Title className="font-serif text-lg text-ink-900">
-              Revenue, last 6 months
-            </Card.Title>
-            <Card.Description>Gross revenue collected per month</Card.Description>
-          </Card.Header>
-          <Card.Content className="p-5">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={overview.revenueByMonth}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E2D8" />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={12}
-                  tickFormatter={(v) => `$${v / 1000}k`}
-                />
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="revenue" fill="#B4802F" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card.Content>
-        </Card>
+        {/* Delivery Status Chart */}
+        <div className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-5">
+          <h3 className="mb-4 text-lg font-semibold text-[var(--rr-ink)]">
+            Delivery Status Distribution
+          </h3>
+          <div className="space-y-3">
+            {deliveryStatusData.map((item) => (
+              <div key={item.name} className="flex items-center justify-between">
+                <span className="text-sm text-[var(--rr-ink-dim)]">{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-32 overflow-hidden rounded-full bg-[var(--rr-surface-2)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--rr-sage)]"
+                      style={{ width: `${totalDeliveries > 0 ? (item.value / totalDeliveries) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-[var(--rr-ink)]">{item.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-5">
+        <h3 className="mb-4 text-lg font-semibold text-[var(--rr-ink)]">
+          Quick Summary
+        </h3>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-lg bg-[var(--rr-bg)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--rr-gold)]">{stats?.pendingBooks || 0}</p>
+            <p className="text-xs text-[var(--rr-ink-dim)]">Pending Books</p>
+          </div>
+          <div className="rounded-lg bg-[var(--rr-bg)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--rr-sage)]">{stats?.totalReviews || 0}</p>
+            <p className="text-xs text-[var(--rr-ink-dim)]">Total Reviews</p>
+          </div>
+          <div className="rounded-lg bg-[var(--rr-bg)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--rr-slate)]">{stats?.pendingDeliveries || 0}</p>
+            <p className="text-xs text-[var(--rr-ink-dim)]">Pending Deliveries</p>
+          </div>
+          <div className="rounded-lg bg-[var(--rr-bg)] p-4 text-center">
+            <p className="text-2xl font-bold text-[var(--rr-wine)]">{totalUsers}</p>
+            <p className="text-xs text-[var(--rr-ink-dim)]">Registered Users</p>
+          </div>
+        </div>
       </div>
     </div>
   );

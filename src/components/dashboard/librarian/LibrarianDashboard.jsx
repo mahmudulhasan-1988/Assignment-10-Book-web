@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import StatsOverview from "./StatsOverview";
 import AddBookForm from "./AddBookForm";
 import ManageInventoryTable from "./ManageInventoryTable";
 import ManageDeliveriesTable from "./ManageDeliveriesTable";
-import { initialBooks, initialDeliveries } from "@/lib/librarian-data";
+import { useDeliveries } from "@/lib/delivery-context";
+
+const VALID_SECTIONS = ["overview", "add-book", "inventory", "deliveries"];
 
 function SectionHeading({ title, count }) {
   return (
@@ -17,60 +20,75 @@ function SectionHeading({ title, count }) {
 }
 
 export default function LibrarianDashboard() {
-  const [books, setBooks] = useState(initialBooks);
-  const [deliveries, setDeliveries] = useState(initialDeliveries);
+  const pathname = usePathname();
+  const [activeSection, setActiveSection] = useState("overview");
+  const { deliveries, loading, fetchDeliveries, updateDeliveryStatus } = useDeliveries();
 
-  function handleAddBook(newBook) {
-    setBooks((prev) => [newBook, ...prev]);
-  }
+  useEffect(() => {
+    fetchDeliveries();
+  }, [fetchDeliveries]);
 
-  function handleUpdateBook(updatedBook) {
-    setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
-  }
+  useEffect(() => {
+    function handleHashChange() {
+      const hash = window.location.hash.replace("#", "");
+      if (hash && VALID_SECTIONS.includes(hash)) {
+        setActiveSection(hash);
+      } else {
+        setActiveSection("overview");
+      }
+    }
 
-  function handleDeleteBook(id) {
-    setBooks((prev) => prev.filter((b) => b.id !== id));
-  }
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [pathname]);
 
   function handleAdvanceDeliveryStatus(id, status) {
-    setDeliveries((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
+    updateDeliveryStatus(id, status);
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
-      <div className="font-mono-label text-[11px] uppercase text-[var(--rr-gold)]">
-        Dashboard · /dashboard/librarian
-      </div>
-      <h1 className="font-display mt-1.5 text-[28px] font-medium tracking-tight sm:text-[34px]">
-        Welcome back, Librarian
-      </h1>
-      <p className="mb-8 text-sm text-[var(--rr-ink-dim)]">
-        Manage your listings, track earnings, and keep deliveries moving.
-      </p>
+    <main className="py-6">
+      {activeSection === "overview" && (
+        <>
+          <div className="mb-8">
+            <p className="font-mono-label text-[11px] uppercase text-[var(--rr-gold)]">
+              Welcome back, Librarian
+            </p>
+            <p className="mt-1 text-sm text-[var(--rr-ink-dim)]">
+              Manage your listings, track earnings, and keep deliveries moving.
+            </p>
+          </div>
+          <StatsOverview />
+        </>
+      )}
 
-      <div className="mb-11">
-        <SectionHeading title="Overview" />
-        <StatsOverview />
-      </div>
+      {activeSection === "add-book" && (
+        <>
+          <SectionHeading title="Add Book" />
+          <AddBookForm />
+        </>
+      )}
 
-      <div className="mb-11">
-        <SectionHeading title="Add Book" />
-        <AddBookForm onAddBook={handleAddBook} />
-      </div>
+      {activeSection === "inventory" && (
+        <>
+          <SectionHeading title="Manage Inventory" />
+          <ManageInventoryTable />
+        </>
+      )}
 
-      <div className="mb-11">
-        <SectionHeading title="Manage Inventory" count={`${books.length} books`} />
-        <ManageInventoryTable
-          books={books}
-          onUpdateBook={handleUpdateBook}
-          onDeleteBook={handleDeleteBook}
-        />
-      </div>
-
-      <div>
-        <SectionHeading title="Manage Deliveries" count={`${deliveries.length} requests`} />
-        <ManageDeliveriesTable deliveries={deliveries} onAdvanceStatus={handleAdvanceDeliveryStatus} />
-      </div>
-    </div>
+      {activeSection === "deliveries" && (
+        <>
+          <SectionHeading
+            title="Manage Deliveries"
+            count={loading ? "Loading..." : `${deliveries.length} requests`}
+          />
+          <ManageDeliveriesTable
+            deliveries={deliveries}
+            onAdvanceStatus={handleAdvanceDeliveryStatus}
+          />
+        </>
+      )}
+    </main>
   );
 }

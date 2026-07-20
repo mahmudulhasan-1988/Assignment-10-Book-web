@@ -27,7 +27,6 @@ import {
 
 import ThemeToggle from "../ThemeToggle";
 import { authClient, useSession } from "@/lib/auth-client";
-import "./globals.css";
 
 const navLinks = [
   {
@@ -101,7 +100,7 @@ export default function Navbar() {
 }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white/80 dark:bg-black/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[var(--rr-hairline)] bg-[var(--rr-bg)]/80 backdrop-blur-md">
 
       <div className="container mx-auto flex h-20 items-center justify-between px-5">
 
@@ -111,7 +110,7 @@ export default function Navbar() {
           href="/"
           className="flex items-center gap-3"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white dark:bg-white dark:text-black">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rr-ink)] text-[var(--rr-bg)] dark:bg-white dark:text-black">
             <BookOpen size={24} />
           </div>
 
@@ -185,7 +184,7 @@ export default function Navbar() {
 
               </button>
           {dropdownOpen && (
-  <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border bg-white shadow-xl dark:bg-zinc-900">
+  <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] shadow-xl">
 
     <div className="border-b p-5 text-center">
 
@@ -210,16 +209,16 @@ export default function Navbar() {
     <Link
       href="/profile"
       onClick={() => setDropdownOpen(false)}
-      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 dark:hover:bg-zinc-800"
+      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
     >
       <User size={18} />
       Profile
     </Link>
 
     <Link
-      href="/dashboard"
+      href={`/dashboard/${session.user?.role || ""}`}
       onClick={() => setDropdownOpen(false)}
-      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-100 dark:hover:bg-zinc-800"
+      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
     >
       <LayoutDashboard size={18} />
       Dashboard
@@ -227,7 +226,7 @@ export default function Navbar() {
 
     <button
       onClick={handleLogout}
-      className="flex w-full items-center gap-3 px-5 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-zinc-800"
+      className="flex w-full items-center gap-3 px-5 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
     >
       <LogOut size={18} />
       Logout
@@ -252,7 +251,7 @@ export default function Navbar() {
 
             <Link
               href="/register"
-              className="flex items-center gap-2 rounded-full bg-black px-6 py-2 text-white dark:bg-white dark:text-black"
+              className="flex items-center gap-2 rounded-full bg-[var(--rr-ink)] px-6 py-2 text-[var(--rr-bg)] dark:bg-white dark:text-black"
             >
               <UserPlus size={18} />
               Register
@@ -283,7 +282,7 @@ export default function Navbar() {
 
 {open && (
 
-<div className="border-t bg-white dark:bg-black md:hidden">
+<div className="border-t border-[var(--rr-hairline)] bg-[var(--rr-bg)] md:hidden">
 
   <div className="flex flex-col gap-4 p-5">
 

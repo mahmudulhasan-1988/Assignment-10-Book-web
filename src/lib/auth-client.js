@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 });
 
 export const {
@@ -10,6 +10,3 @@ export const {
   signUp,
   useSession,
 } = authClient;
-// const handleGoogleLogin = () => {
-//    console.log("Google Login");
-// }

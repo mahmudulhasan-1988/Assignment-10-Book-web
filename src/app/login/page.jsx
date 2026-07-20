@@ -43,7 +43,7 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-zinc-950 dark:via-black dark:to-zinc-900">
+    <main className="min-h-screen bg-[var(--rr-bg)]">
       <div className="container mx-auto px-4 py-10 lg:py-16">
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Side */}

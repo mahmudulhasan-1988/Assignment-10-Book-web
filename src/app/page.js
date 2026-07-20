@@ -1,10 +1,25 @@
 import Hero from "@/components/Hero";
-import Image from "next/image";
+import FeaturedBooks from "@/components/FeaturedBooks";
+import PopularCategories from "@/components/PopularCategories";
+import HowItWorks from "@/components/HowItWorks";
+import WhyChooseUs from "@/components/WhyChooseUs";
+import TopLibrarians from "@/components/TopLibrarians";
+import Testimonials from "@/components/Testimonials";
+import CTASection from "@/components/CTASection";
+import Newsletter from "@/components/Newsletter";
 
 export default function Home() {
   return (
-    <div >
+    <div>
       <Hero />
+      <FeaturedBooks />
+      <PopularCategories />
+      <HowItWorks />
+      <WhyChooseUs />
+      <TopLibrarians />
+      <Testimonials />
+      <CTASection />
+      <Newsletter />
     </div>
   );
 }

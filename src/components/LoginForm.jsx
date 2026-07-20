@@ -32,7 +32,7 @@ export default function LoginForm() {
   };
 
   return (
-    <Card className="rounded-[36px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 md:p-10 shadow-none">
+    <Card className="rounded-[36px] border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-8 md:p-10 shadow-none">
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -129,13 +129,13 @@ export default function LoginForm() {
 
         <div className="flex items-center gap-4">
 
-          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></div>
+          <div className="h-px flex-1 bg-[var(--rr-hairline)]"></div>
 
           <span className="text-sm text-zinc-400">
             or continue with
           </span>
 
-          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-700"></div>
+          <div className="h-px flex-1 bg-[var(--rr-hairline)]"></div>
 
         </div>
 

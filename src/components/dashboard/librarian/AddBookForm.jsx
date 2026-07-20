@@ -1,200 +1,363 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Button, Card, Description, FieldError, Input, Label, TextArea, TextField } from "@heroui/react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import {
+  BookOpen,
+  Upload,
+  X,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { CATEGORIES } from "@/lib/books-data";
 import { uploadImageToImgBB } from "@/lib/imgbb";
-import { BOOK_STATUS, CATEGORIES } from "@/lib/librarian-data";
 
-const emptyForm = {
-  title: "",
-  author: "",
-  description: "",
-  deliveryFee: "",
-  category: CATEGORIES[0],
-};
+const CATEGORY_OPTIONS = CATEGORIES.filter((c) => c !== "All");
 
-export default function AddBookForm({ onAddBook }) {
-  const [form, setForm] = useState(emptyForm);
+export default function AddBookForm() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    title: "",
+    author: "",
+    description: "",
+    deliveryFee: "",
+    category: "Fiction",
+    isbn: "",
+    publishedYear: new Date().getFullYear().toString(),
+  });
   const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-  const fileInputRef = useRef(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState(null); // "success" | "error" | null
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  function handleInputChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleFileChange(e) {
+  function handleImageChange(e) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-    setError("");
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMsg("Image must be less than 5MB");
+        setStatus("error");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeImage() {
+    setImageFile(null);
+    setImagePreview(null);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
-    setSuccessMsg("");
-
-    if (!form.title || !form.author || !form.deliveryFee) {
-      setError("Title, author, and delivery fee are required.");
-      return;
-    }
-
-    let imageUrl = "";
+    setSubmitting(true);
+    setStatus(null);
+    setErrorMsg("");
 
     try {
+      let coverImage = "";
+
+      // Upload image to imgBB if selected
       if (imageFile) {
-        setIsUploading(true);
-        imageUrl = await uploadImageToImgBB(imageFile);
+        setUploading(true);
+        try {
+          coverImage = await uploadImageToImgBB(imageFile);
+        } catch (err) {
+          setErrorMsg("Failed to upload image. Please try again.");
+          setStatus("error");
+          setSubmitting(false);
+          setUploading(false);
+          return;
+        }
+        setUploading(false);
       }
 
-      // Status is strictly forced to "Pending Approval" on submit.
-      // The librarian has no way to override this from the UI.
-      onAddBook({
-        id: `bk-${Date.now()}`,
-        title: form.title,
-        author: form.author,
-        description: form.description,
-        deliveryFee: parseFloat(form.deliveryFee),
-        category: form.category,
-        imageUrl,
-        status: BOOK_STATUS.PENDING,
-        requests: 0,
+      // Create book via API
+      const res = await fetch("/api/books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title,
+          author: formData.author,
+          description: formData.description,
+          deliveryFee: parseFloat(formData.deliveryFee) || 0,
+          category: formData.category,
+          coverImage,
+          isbn: formData.isbn,
+          publishedYear: parseInt(formData.publishedYear) || new Date().getFullYear(),
+        }),
       });
 
-      setForm(emptyForm);
-      setImageFile(null);
-      setImagePreview("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      setSuccessMsg("Book submitted for approval. It won't appear on Browse until an admin approves it.");
+      if (res.ok) {
+        setStatus("success");
+        // Reset form
+        setFormData({
+          title: "",
+          author: "",
+          description: "",
+          deliveryFee: "",
+          category: "Fiction",
+          isbn: "",
+          publishedYear: new Date().getFullYear().toString(),
+        });
+        setImageFile(null);
+        setImagePreview(null);
+      } else {
+        const data = await res.json();
+        setErrorMsg(data.error || "Failed to add book");
+        setStatus("error");
+      }
     } catch (err) {
-      setError(err.message || "Something went wrong while uploading the image.");
+      setErrorMsg("Network error. Please try again.");
+      setStatus("error");
     } finally {
-      setIsUploading(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <Card className="p-6">
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <TextField className="flex flex-col gap-1.5 md:col-span-1" isRequired>
-          <Label className="text-xs text-[var(--rr-ink-dim)]">Title</Label>
-          <Input
-            value={form.title}
-            onChange={(e) => updateField("title", e.target.value)}
-            placeholder="The Midnight Library"
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-        </TextField>
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-[var(--rr-ink)]">Add New Book</h2>
+        <p className="mt-1 text-sm text-[var(--rr-ink-dim)]">
+          Add a new book to the library. It will be pending approval until an admin reviews it.
+        </p>
+      </div>
 
-        <TextField className="flex flex-col gap-1.5 md:col-span-1" isRequired>
-          <Label className="text-xs text-[var(--rr-ink-dim)]">Author</Label>
-          <Input
-            value={form.author}
-            onChange={(e) => updateField("author", e.target.value)}
-            placeholder="Matt Haig"
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-        </TextField>
+      {/* Status Messages */}
+      {status === "success" && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-4">
+          <CheckCircle size={20} className="text-emerald-600 dark:text-emerald-400" />
+          <div>
+            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+              Book added successfully!
+            </p>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400">
+              It will appear on the Browse page after admin approval.
+            </p>
+          </div>
+        </div>
+      )}
 
-        <TextField className="flex flex-col gap-1.5 md:col-span-2">
-          <Label className="text-xs text-[var(--rr-ink-dim)]">Description</Label>
-          <TextArea
-            value={form.description}
-            onChange={(e) => updateField("description", e.target.value)}
-            placeholder="A short blurb about the book..."
-            rows={3}
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-        </TextField>
+      {status === "error" && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+          <AlertCircle size={20} className="text-red-600 dark:text-red-400" />
+          <p className="text-sm text-red-800 dark:text-red-300">{errorMsg}</p>
+        </div>
+      )}
 
-        <TextField className="flex flex-col gap-1.5 md:col-span-1" isRequired>
-          <Label className="text-xs text-[var(--rr-ink-dim)]">Delivery Fee (USD)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.deliveryFee}
-            onChange={(e) => updateField("deliveryFee", e.target.value)}
-            placeholder="3.50"
-            className="rounded-md border px-3 py-2 text-sm"
-          />
-        </TextField>
-
-        <div className="flex flex-col gap-1.5 md:col-span-1">
-          <label className="text-xs text-[var(--rr-ink-dim)]" htmlFor="category">
-            Category
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Image Upload */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+            Book Cover Image
           </label>
-          <select
-            id="category"
-            value={form.category}
-            onChange={(e) => updateField("category", e.target.value)}
-            className="rr-select rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--rr-gold)]"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          {imagePreview ? (
+            <div className="relative inline-block">
+              <div className="relative h-48 w-32 overflow-hidden rounded-xl border border-[var(--rr-hairline)]">
+                <Image
+                  src={imagePreview}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <label className="flex flex-col items-center justify-center h-48 w-full cursor-pointer rounded-xl border-2 border-dashed border-[var(--rr-hairline)] bg-[var(--rr-surface)] hover:bg-[var(--rr-surface-2)] transition-colors">
+              <Upload size={32} className="mb-2 text-[var(--rr-ink-dim)]" />
+              <span className="text-sm text-[var(--rr-ink-dim)]">
+                Click to upload image
+              </span>
+              <span className="text-xs text-[var(--rr-ink-dim)] opacity-60 mt-1">
+                PNG, JPG up to 5MB
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+          )}
         </div>
 
-        <div className="flex flex-col gap-1.5 md:col-span-2">
-          <label className="text-xs text-[var(--rr-ink-dim)]" htmlFor="cover-image">
-            Cover Image
+        {/* Title */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+            Title *
           </label>
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Cover preview"
-                className="h-24 w-16 rounded-sm object-cover shadow-md"
-              />
-            ) : (
-              <div className="flex h-24 w-16 items-center justify-center rounded-sm border border-dashed border-[var(--rr-hairline)] text-[10px] text-[var(--rr-ink-dim)]">
-                No image
-              </div>
-            )}
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            required
+            placeholder="Enter book title"
+            className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
+          />
+        </div>
+
+        {/* Author */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+            Author *
+          </label>
+          <input
+            type="text"
+            name="author"
+            value={formData.author}
+            onChange={handleInputChange}
+            required
+            placeholder="Enter author name"
+            className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+            Description
+          </label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            rows={4}
+            placeholder="Enter book description"
+            className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all resize-none"
+          />
+        </div>
+
+        {/* Delivery Fee & Category Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Delivery Fee */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+              Delivery Fee ($) *
+            </label>
             <input
-              id="cover-image"
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-xs text-[var(--rr-ink-dim)] file:mr-3 file:rounded-md file:border file:border-[var(--rr-hairline)] file:bg-[var(--rr-surface-2)] file:px-3 file:py-1.5 file:text-[var(--rr-ink)]"
+              type="number"
+              name="deliveryFee"
+              value={formData.deliveryFee}
+              onChange={handleInputChange}
+              required
+              min="0"
+              step="0.50"
+              placeholder="0.00"
+              className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
             />
           </div>
-          <Description className="text-[11px] text-[var(--rr-ink-dim)]">
-            Uploaded to imgBB. Only the hosted URL is stored with the book.
-          </Description>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+              Category *
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
+            >
+              {CATEGORY_OPTIONS.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {error && (
-          <div className="rounded-md border border-[var(--rr-wine)] bg-[var(--rr-wine)]/10 px-3 py-2 text-xs text-[var(--rr-wine-bright)] md:col-span-2">
-            {error}
+        {/* ISBN & Published Year Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* ISBN */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+              ISBN
+            </label>
+            <input
+              type="text"
+              name="isbn"
+              value={formData.isbn}
+              onChange={handleInputChange}
+              placeholder="978-0000000000"
+              className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
+            />
           </div>
-        )}
-        {successMsg && (
-          <div className="rounded-md border border-[var(--rr-sage)] bg-[var(--rr-sage)]/10 px-3 py-2 text-xs text-[#a9caa5] md:col-span-2">
-            {successMsg}
-          </div>
-        )}
 
-        <div className="md:col-span-2">
-          <Button type="submit" variant="primary" isPending={isUploading}>
-            {isUploading ? "Uploading..." : "Submit for Approval"}
-          </Button>
-          <p className="mt-2 text-[11px] text-[var(--rr-ink-dim)]">
-            New books are always submitted with status{" "}
-            <span className="font-mono-label text-[var(--rr-gold-bright)]">Pending Approval</span> and
-            stay hidden from the public Browse page until an admin approves them.
-          </p>
+          {/* Published Year */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--rr-ink)] mb-2">
+              Published Year
+            </label>
+            <input
+              type="number"
+              name="publishedYear"
+              value={formData.publishedYear}
+              onChange={handleInputChange}
+              min="1000"
+              max={new Date().getFullYear()}
+              className="w-full rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3 text-sm text-[var(--rr-ink)] outline-none focus:border-[var(--rr-gold)] focus:ring-2 focus:ring-[var(--rr-gold)]/20 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Status Note */}
+        <div className="rounded-xl bg-[var(--rr-surface)] border border-[var(--rr-hairline)] p-4">
+          <div className="flex items-start gap-3">
+            <BookOpen size={18} className="mt-0.5 text-[var(--rr-gold)]" />
+            <div>
+              <p className="text-sm font-medium text-[var(--rr-ink)]">
+                Pending Approval
+              </p>
+              <p className="text-xs text-[var(--rr-ink-dim)] mt-1">
+                This book will be set to &quot;Pending Approval&quot; status. It will not appear on the
+                public Browse page until an admin approves it.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={submitting || uploading}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--rr-gold)] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--rr-gold-bright)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {uploading ? "Uploading Image..." : "Adding Book..."}
+              </>
+            ) : (
+              <>
+                <BookOpen size={16} />
+                Add Book
+              </>
+            )}
+          </button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

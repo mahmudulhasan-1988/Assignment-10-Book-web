@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { User, Mail, Lock, Upload } from "lucide-react";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 import { authClient } from "@/lib/auth-client";
 import { uploadImage } from "@/utils/uploadImage";
@@ -67,7 +67,7 @@ export default function RegisterForm() {
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.7 }}
-      className="rounded-[40px] border border-slate-200 bg-white p-8 lg:p-10 shadow-sm"
+      className="rounded-[40px] border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-8 lg:p-10 shadow-sm"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 

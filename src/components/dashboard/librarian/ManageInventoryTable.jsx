@@ -1,199 +1,289 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Card, Chip, Input, Table } from "@heroui/react";
-import { BOOK_STATUS, CATEGORIES, statusChipColor } from "@/lib/librarian-data";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  Edit,
+  Trash2,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  BookOpen,
+  RefreshCw,
+} from "lucide-react";
+import { useSession } from "@/lib/auth-client";
+import toast from "react-hot-toast";
 
-export default function ManageInventoryTable({ books, onUpdateBook, onDeleteBook }) {
-  const [editingBook, setEditingBook] = useState(null);
+const STATUS_CONFIG = {
+  available: { label: "Published", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  pending: { label: "Pending Approval", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  checked_out: { label: "Checked Out", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
+};
+
+export default function ManageInventoryTable() {
+  const { data: session } = useSession();
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [unpublishing, setUnpublishing] = useState(null);
 
-  function startEdit(book) {
-    setEditingBook({ ...book });
-    setConfirmDeleteId(null);
+  const fetchMyBooks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/books");
+      if (res.ok) {
+        const data = await res.json();
+        // Filter books owned by this librarian
+        const myBooks = data.filter((book) => book.ownerId === session?.user?.id);
+        setBooks(myBooks);
+      }
+    } catch (error) {
+      console.error("Error fetching books:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchMyBooks();
+    }
+  }, [session?.user?.id, fetchMyBooks]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (session?.user?.id) {
+        fetchMyBooks();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user?.id, fetchMyBooks]);
+
+  async function handleDelete(bookId, bookTitle) {
+    setDeleting(bookId);
+    try {
+      const res = await fetch(`/api/books?id=${bookId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success(`"${bookTitle}" has been deleted.`);
+        await fetchMyBooks();
+        setConfirmDeleteId(null);
+      } else {
+        toast.error("Failed to delete book");
+      }
+    } catch (error) {
+      console.error("Error deleting book:", error);
+      toast.error("Failed to delete book");
+    } finally {
+      setDeleting(null);
+    }
   }
 
-  function saveEdit() {
-    onUpdateBook(editingBook);
-    setEditingBook(null);
+  async function handleUnpublish(bookId, bookTitle) {
+    setUnpublishing(bookId);
+    try {
+      const res = await fetch("/api/books", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bookId, status: "pending" }),
+      });
+      if (res.ok) {
+        toast.success(`"${bookTitle}" has been unpublished.`);
+        await fetchMyBooks();
+      } else {
+        toast.error("Failed to unpublish book");
+      }
+    } catch (error) {
+      console.error("Error unpublishing book:", error);
+      toast.error("Failed to unpublish book");
+    } finally {
+      setUnpublishing(null);
+    }
   }
 
-  function togglePublish(book) {
-    if (book.status !== BOOK_STATUS.PUBLISHED) return;
-    onUpdateBook({ ...book, status: BOOK_STATUS.UNPUBLISHED });
+  if (loading) {
+    return (
+      <div className="overflow-x-auto rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)]">
+        <div className="border-b border-[var(--rr-hairline)] bg-[var(--rr-bg)] px-4 py-3">
+          <div className="flex gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-4 flex-1 animate-pulse rounded bg-[var(--rr-surface-2)]" />
+            ))}
+          </div>
+        </div>
+        {Array.from({ length: 5 }).map((_, row) => (
+          <div key={row} className="border-b border-[var(--rr-hairline)] last:border-0 px-4 py-4">
+            <div className="flex gap-4">
+              {Array.from({ length: 4 }).map((_, col) => (
+                <div key={col} className="h-4 flex-1 animate-pulse rounded bg-[var(--rr-surface-2)]" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (books.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)]">
+        <BookOpen size={48} className="mb-4 text-[var(--rr-ink-dim)] opacity-30" />
+        <p className="text-[var(--rr-ink-dim)]">You haven&apos;t added any books yet.</p>
+        <p className="text-sm text-[var(--rr-ink-dim)] mt-1">Use the Add Book form to get started.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {editingBook && (
-        <Card className="p-5">
-          <Card.Header>
-            <Card.Title className="font-mono-label text-[11px] uppercase text-[var(--rr-gold)]">
-              Editing “{editingBook.title}”
-            </Card.Title>
-          </Card.Header>
-          <Card.Content>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[var(--rr-ink-dim)]">Title</label>
-                <Input
-                  value={editingBook.title}
-                  onChange={(e) => setEditingBook({ ...editingBook, title: e.target.value })}
-                  className="rounded-md border px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[var(--rr-ink-dim)]">Author</label>
-                <Input
-                  value={editingBook.author}
-                  onChange={(e) => setEditingBook({ ...editingBook, author: e.target.value })}
-                  className="rounded-md border px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[var(--rr-ink-dim)]">Delivery Fee (USD)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={editingBook.deliveryFee}
-                  onChange={(e) =>
-                    setEditingBook({ ...editingBook, deliveryFee: parseFloat(e.target.value) || 0 })
-                  }
-                  className="rounded-md border px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-[var(--rr-ink-dim)]">Category</label>
-                <select
-                  value={editingBook.category}
-                  onChange={(e) => setEditingBook({ ...editingBook, category: e.target.value })}
-                  className="rr-select rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--rr-gold)]"
-                >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label className="text-xs text-[var(--rr-ink-dim)]">Description</label>
-                <textarea
-                  value={editingBook.description}
-                  onChange={(e) => setEditingBook({ ...editingBook, description: e.target.value })}
-                  rows={3}
-                  className="rr-select resize-none rounded-md px-3 py-2 text-sm outline-none focus:border-[var(--rr-gold)]"
-                />
-              </div>
-            </div>
-            {editingBook.status !== BOOK_STATUS.PENDING && (
-              <p className="mt-3 text-[11px] text-[var(--rr-ink-dim)]">
-                Editing details doesn&apos;t change the approval status.
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <Button variant="primary" onPress={saveEdit}>
-                Save Changes
-              </Button>
-              <Button variant="ghost" onPress={() => setEditingBook(null)}>
-                Cancel
-              </Button>
-            </div>
-          </Card.Content>
-        </Card>
-      )}
+    <div className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] overflow-hidden">
+      {/* Header with refresh button */}
+      <div className="flex items-center justify-between border-b border-[var(--rr-hairline)] bg-[var(--rr-bg)] px-4 py-3">
+        <span className="text-sm text-[var(--rr-ink-dim)]">
+          {books.length} books in your inventory
+        </span>
+        <button
+          onClick={fetchMyBooks}
+          className="flex items-center gap-1.5 text-xs text-[var(--rr-ink-dim)] hover:text-[var(--rr-ink)] transition-colors"
+        >
+          <RefreshCw size={12} />
+          Refresh
+        </button>
+      </div>
 
-      <Card className="p-2">
-        <Table>
-          <Table.ScrollContainer>
-            <Table.Content aria-label="Manage inventory">
-              <Table.Header>
-                <Table.Column isRowHeader>Title</Table.Column>
-                <Table.Column>Category</Table.Column>
-                <Table.Column>Fee</Table.Column>
-                <Table.Column>Status</Table.Column>
-                <Table.Column>Actions</Table.Column>
-              </Table.Header>
-              <Table.Body items={books} renderEmptyState={() => (
-                <div className="px-4 py-10 text-center text-sm text-[var(--rr-ink-dim)]">
-                  You haven&apos;t listed any books yet. Use the form above to add one.
-                </div>
-              )}>
-                {(book) => {
-                  const isConfirming = confirmDeleteId === book.id;
-                  return (
-                    <Table.Row id={book.id}>
-                      <Table.Cell>
-                        <span className="font-display text-[15px]">{book.title}</span>
-                        <div className="text-[11px] text-[var(--rr-ink-dim)]">{book.author}</div>
-                      </Table.Cell>
-                      <Table.Cell>{book.category}</Table.Cell>
-                      <Table.Cell>
-                        <span className="font-mono-label text-[var(--rr-gold-bright)]">
-                          ${book.deliveryFee.toFixed(2)}
-                        </span>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Chip color={statusChipColor[book.status]} variant="soft" size="sm">
-                          {book.status}
-                        </Chip>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {isConfirming ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] text-[var(--rr-ink-dim)]">Delete?</span>
-                            <Button size="sm" variant="danger" onPress={() => onDeleteBook(book.id)}>
-                              Confirm
-                            </Button>
-                            <Button size="sm" variant="ghost" onPress={() => setConfirmDeleteId(null)}>
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button size="sm" variant="outline" onPress={() => startEdit(book)}>
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onPress={() => setConfirmDeleteId(book.id)}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-[var(--rr-hairline)]">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--rr-ink-dim)]">
+                Book
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--rr-ink-dim)]">
+                Category
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--rr-ink-dim)]">
+                Fee
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--rr-ink-dim)]">
+                Status
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--rr-ink-dim)]">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--rr-hairline)]">
+            {books.map((book) => {
+              const status = STATUS_CONFIG[book.status] || STATUS_CONFIG.pending;
+              const isConfirming = confirmDeleteId === book.id;
+
+              return (
+                <tr
+                  key={book.id}
+                  className="transition-colors hover:bg-[var(--rr-bg)]/50"
+                >
+                  <td className="px-4 py-4">
+                    <Link
+                      href={`/books/${book.id}`}
+                      className="font-medium text-[var(--rr-ink)] hover:text-[var(--rr-gold)] transition-colors"
+                    >
+                      {book.title}
+                    </Link>
+                    <div className="text-xs text-[var(--rr-ink-dim)]">{book.author}</div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-[var(--rr-ink-dim)]">
+                    {book.category}
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="font-mono text-sm font-semibold text-[var(--rr-gold)]">
+                      ${book.deliveryFee.toFixed(2)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      {isConfirming ? (
+                        <>
+                          <span className="text-xs text-[var(--rr-ink-dim)]">Delete?</span>
+                          <button
+                            onClick={() => handleDelete(book.id, book.title)}
+                            disabled={deleting === book.id}
+                            className="flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            {deleting === book.id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : null}
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="rounded-lg border border-[var(--rr-hairline)] px-3 py-1.5 text-xs font-medium text-[var(--rr-ink-dim)] hover:bg-[var(--rr-surface-2)] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Edit */}
+                          <Link
+                            href={`/books/${book.id}`}
+                            className="flex items-center gap-1 rounded-lg border border-[var(--rr-hairline)] px-3 py-1.5 text-xs font-medium text-[var(--rr-ink)] hover:bg-[var(--rr-surface-2)] transition-colors"
+                            title="View/Edit book"
+                          >
+                            <Edit size={12} />
+                            Edit
+                          </Link>
+
+                          {/* Delete */}
+                          <button
+                            onClick={() => setConfirmDeleteId(book.id)}
+                            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                            title="Delete book"
+                          >
+                            <Trash2 size={12} />
+                            Delete
+                          </button>
+
+                          {/* Unpublish - only for Published books */}
+                          {book.status === "available" && (
+                            <button
+                              onClick={() => handleUnpublish(book.id, book.title)}
+                              disabled={unpublishing === book.id}
+                              className="flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
+                              title="Unpublish book"
                             >
-                              Delete
-                            </Button>
-                            {book.status === BOOK_STATUS.PUBLISHED && (
-                              <Button size="sm" variant="outline" onPress={() => togglePublish(book)}>
-                                Unpublish
-                              </Button>
-                            )}
-                            {book.status === BOOK_STATUS.PENDING && (
-                              <span
-                                title="A librarian cannot publish a book that's still Pending Approval — an admin has to approve it first."
-                                className="font-mono-label cursor-not-allowed text-[10px] uppercase text-[var(--rr-ink-dim)]"
-                              >
-                                Awaiting approval
-                              </span>
-                            )}
-                            {book.status === BOOK_STATUS.UNPUBLISHED && (
-                              <span
-                                title="Only an admin can republish an unpublished book."
-                                className="font-mono-label cursor-not-allowed text-[10px] uppercase text-[var(--rr-ink-dim)]"
-                              >
-                                Unpublished
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                }}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-      </Card>
+                              {unpublishing === book.id ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <EyeOff size={12} />
+                              )}
+                              Unpublish
+                            </button>
+                          )}
+
+                          {/* Pending - show awaiting approval message */}
+                          {book.status === "pending" && (
+                            <span
+                              className="flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
+                              title="A librarian cannot publish a pending book — an admin must approve it first."
+                            >
+                              <AlertCircle size={12} />
+                              Awaiting Approval
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
