@@ -12,6 +12,7 @@ function formatDate(iso: string) {
 }
 
 interface Book {
+  _id?: string;
   id: string;
   title: string;
   author: string;
@@ -111,7 +112,7 @@ export function BookApprovalQueue({ books, onRefresh }: { books: Book[]; onRefre
             </thead>
             <tbody>
               {books.map((book) => (
-                <tr key={book.id} className="border-b border-[var(--rr-hairline)] last:border-0 hover:bg-[var(--rr-bg)]/50 transition-colors">
+                <tr key={book._id || book.id} className="border-b border-[var(--rr-hairline)] last:border-0 hover:bg-[var(--rr-bg)]/50 transition-colors">
                   <td className="px-4 py-3 text-sm font-medium text-[var(--rr-ink)]">
                     {book.title}
                   </td>

@@ -44,6 +44,12 @@
   --rr-black: #ffffff;
 }
 
+/* ─── Smooth scrolling ─── */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
 /* ─── Base styles ─── */
 body {
   background: var(--rr-bg);

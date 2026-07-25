@@ -45,7 +45,9 @@ export default function StatsOverview() {
         const res = await fetch("/api/books");
         if (res.ok) {
           const data = await res.json();
-          const myBooks = data.filter((book) => book.ownerId === session?.user?.id);
+          // Handle both paginated and array responses
+          const allBooks = data.books || (Array.isArray(data) ? data : []);
+          const myBooks = allBooks.filter((book) => book.ownerId === session?.user?.id);
           setBooks(myBooks);
         }
       } catch (error) {
@@ -357,7 +359,7 @@ export default function StatsOverview() {
           {books.length > 0 ? (
             <ul className="flex flex-col gap-3">
               {books.slice(0, 5).map((book, i) => (
-                <li key={book.id} className="flex items-center justify-between gap-3">
+                <li key={book._id || book.id} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <span className="font-mono-label flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--rr-hairline)] text-[10px] text-[var(--rr-gold-bright)]">
                       {i + 1}
@@ -409,14 +411,14 @@ export default function StatsOverview() {
                 <ul className="space-y-3">
                   {detail.items.map((book) => (
                     <li
-                      key={book.id}
+                      key={book._id || book.id}
                       className="flex items-center justify-between rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3"
                     >
                       <div className="flex items-center gap-3">
                         <BookOpen size={16} className="text-[var(--rr-gold)]" />
                         <div>
                           <Link
-                            href={`/books/${book.id}`}
+                            href={`/books/${book._id || book.id}`}
                             className="font-display text-sm font-medium text-[var(--rr-ink)] hover:text-[var(--rr-gold)] transition-colors"
                           >
                             {book.title}
@@ -439,7 +441,7 @@ export default function StatsOverview() {
                 <ul className="space-y-3">
                   {detail.items.map((dl) => (
                     <li
-                      key={dl.id}
+                      key={dl._id || dl.id}
                       className="flex items-center justify-between rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3"
                     >
                       <div className="flex items-center gap-3">

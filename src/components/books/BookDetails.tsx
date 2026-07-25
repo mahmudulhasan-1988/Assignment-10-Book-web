@@ -23,6 +23,7 @@ import {
   Check,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
+import { useDeliveries } from "@/lib/delivery-context";
 import { useReadingList } from "@/lib/reading-list-context";
 import ReviewList from "./ReviewList";
 import ReviewModal from "./ReviewModal";
@@ -56,6 +57,7 @@ const STATUS_CONFIG = {
 export default function BookDetails({ book: initialBook }: { book: Book }) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { hasExistingDelivery } = useDeliveries();
   const { isInReadingList, addToReadingList, removeFromReadingList } = useReadingList();
   const [book, setBook] = useState(initialBook);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -86,6 +88,7 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
   const isOwner = isLoggedIn && user?.id && book.ownerId && user.id === book.ownerId;
   const isAdmin = isLoggedIn && (user as any)?.role === "admin";
   const isLibrarianOwner = isOwner || isAdmin;
+  const existingDelivery = hasExistingDelivery(book._id || book.id);
 
   function formatDate(dateString?: string) {
     if (!dateString) return "N/A";
@@ -97,7 +100,7 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
   }
 
   async function handleRequestDelivery() {
-    if (!isLoggedIn || book.status !== "available") return;
+    if (!isLoggedIn || book.status !== "available" || existingDelivery) return;
 
     setPaymentStep("processing");
 
@@ -108,6 +111,9 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: session?.user?.id,
+          userName: session?.user?.name || "Anonymous",
+          userEmail: session?.user?.email || "",
           bookId: book.id,
           bookTitle: book.title,
           bookAuthor: book.author,
@@ -319,8 +325,24 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
               )}
 
               <div className="flex flex-wrap gap-3">
+                {/* Existing Delivery Warning */}
+                {existingDelivery && book.status === "available" && (
+                  <div className="mb-2 w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-900/20">
+                    <div className="flex items-center gap-2">
+                      <Truck size={16} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                      <p className="font-medium text-amber-800 dark:text-amber-300">
+                        You already have this book
+                      </p>
+                    </div>
+                    <p className="mt-1 ml-6 text-xs text-amber-600 dark:text-amber-400">
+                      This book is already in your delivery list with status{" "}
+                      <span className="font-medium">{existingDelivery.status}</span>.
+                    </p>
+                  </div>
+                )}
+
                 {/* Request Delivery Button */}
-                {book.status === "available" && (
+                {book.status === "available" && !existingDelivery && (
                   <button
                     disabled={!isLoggedIn || paymentStep === "processing"}
                     onClick={handleRequestDelivery}

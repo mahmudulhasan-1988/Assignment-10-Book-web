@@ -38,6 +38,10 @@ export default function ReviewModal({ bookId, bookTitle, onClose }: ReviewModalP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: user?.id,
+          userName: user?.name || "Anonymous",
+          userEmail: user?.email || "",
+          userImage: user?.image || "",
           bookId,
           bookTitle,
           rating,

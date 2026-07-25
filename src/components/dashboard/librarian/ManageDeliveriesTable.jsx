@@ -27,11 +27,14 @@ export default function ManageDeliveriesTable({ deliveries, onAdvanceStatus }) {
   const [advancingId, setAdvancingId] = useState(null);
 
   async function handleAdvance(deliveryId, newStatus, bookTitle) {
+    console.log(`[ManageDeliveriesTable] Advancing ${bookTitle} (${deliveryId}) to ${newStatus}`);
     setAdvancingId(deliveryId);
     try {
       await onAdvanceStatus(deliveryId, newStatus);
+      console.log(`[ManageDeliveriesTable] Status updated successfully`);
       toast.success(`"${bookTitle}" marked as ${newStatus}`);
     } catch (error) {
+      console.error(`[ManageDeliveriesTable] Error:`, error);
       toast.error("Failed to update delivery status");
     } finally {
       setAdvancingId(null);

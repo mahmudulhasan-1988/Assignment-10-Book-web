@@ -1,42 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { verifyAuth } from "@/lib/verify-auth";
-import { ObjectId } from "mongodb";
 
-interface ReadingListDocument {
-  _id?: ObjectId;
-  userId: string;
-  bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
-  bookCover: string;
-  category: string;
-  addedAt: Date;
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 // GET /api/reading-list?userId=xxx — fetch user's reading list
 export async function GET(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") || session.user.id;
+    const userId = searchParams.get("userId");
 
-    const db = await getDb();
-    const collection = db.collection<ReadingListDocument>("readingList");
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId is required" },
+        { status: 400 }
+      );
+    }
 
-    const items = await collection
-      .find({ userId })
-      .sort({ addedAt: -1 })
-      .toArray();
+    const res = await fetch(`${BACKEND_URL}/api/reading-list?userId=${userId}`);
+    const data = await res.json();
 
-    const mapped = items.map((item) => ({
-      ...item,
-      _id: item._id?.toString() || "",
-      addedAt: item.addedAt?.toISOString() || new Date().toISOString(),
-    }));
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching reading list:", error);
     return NextResponse.json(
@@ -49,50 +31,21 @@ export async function GET(request: NextRequest) {
 // POST /api/reading-list — add book to reading list
 export async function POST(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const body = await request.json();
-    const { bookId, bookTitle, bookAuthor, bookCover, category } = body;
 
-    if (!bookId || !bookTitle) {
-      return NextResponse.json(
-        { error: "Book ID and title are required" },
-        { status: 400 }
-      );
-    }
-
-    const db = await getDb();
-    const collection = db.collection<ReadingListDocument>("readingList");
-
-    // Check if already in reading list
-    const existing = await collection.findOne({
-      userId: session.user.id,
-      bookId,
+    const res = await fetch(`${BACKEND_URL}/api/reading-list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
 
-    if (existing) {
-      return NextResponse.json(
-        { error: "Book already in reading list" },
-        { status: 409 }
-      );
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    const item: ReadingListDocument = {
-      userId: session.user.id,
-      bookId,
-      bookTitle,
-      bookAuthor: bookAuthor || "",
-      bookCover: bookCover || "",
-      category: category || "",
-      addedAt: new Date(),
-    };
-
-    const result = await collection.insertOne(item);
-
-    return NextResponse.json(
-      { ...item, _id: result.insertedId.toString(), addedAt: item.addedAt.toISOString() },
-      { status: 201 }
-    );
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error adding to reading list:", error);
     return NextResponse.json(
@@ -105,10 +58,9 @@ export async function POST(request: NextRequest) {
 // DELETE /api/reading-list?bookId=xxx — remove from reading list
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const { searchParams } = new URL(request.url);
     const bookId = searchParams.get("bookId");
+    const userId = searchParams.get("userId");
 
     if (!bookId) {
       return NextResponse.json(
@@ -117,22 +69,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const db = await getDb();
-    const collection = db.collection<ReadingListDocument>("readingList");
+    const url = userId
+      ? `${BACKEND_URL}/api/reading-list?bookId=${bookId}&userId=${userId}`
+      : `${BACKEND_URL}/api/reading-list?bookId=${bookId}`;
 
-    const result = await collection.deleteOne({
-      userId: session.user.id,
-      bookId,
-    });
+    const res = await fetch(url, { method: "DELETE" });
+    const data = await res.json();
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: "Book not found in reading list" },
-        { status: 404 }
-      );
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error removing from reading list:", error);
     return NextResponse.json(

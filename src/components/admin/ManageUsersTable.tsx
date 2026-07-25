@@ -17,6 +17,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 interface User {
+  _id?: string;
   id: string;
   name: string;
   email: string;
@@ -139,7 +140,7 @@ export function ManageUsersTable({ users, onRefresh }: { users: User[]; onRefres
               </tr>
             ) : (
               filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-[var(--rr-hairline)] last:border-0 hover:bg-[var(--rr-bg)]/50">
+                <tr key={user._id || user.id} className="border-b border-[var(--rr-hairline)] last:border-0 hover:bg-[var(--rr-bg)]/50">
                   {/* User with Image */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">

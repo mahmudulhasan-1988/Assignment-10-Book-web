@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { auth } from "@/lib/auth";
-import { ObjectId } from "mongodb";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 // GET /api/users — Get all users
 export async function GET() {
   try {
-    const db = await getDb();
-    const collection = db.collection("user");
+    const res = await fetch(`${BACKEND_URL}/api/users`);
+    const data = await res.json();
 
-    const users = await collection.find({}).toArray();
-
-    const mapped = users.map((user: any) => ({
-      id: user._id?.toString() || "",
-      name: user.name || "",
-      email: user.email || "",
-      image: user.image || "",
-      role: user.role || "reader",
-      createdAt: user.createdAt,
-    }));
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
@@ -43,37 +31,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Update name or image via better-auth API (updates JWT/session too)
-    if (name !== undefined || image !== undefined) {
-      const updates: Record<string, any> = {};
-      if (name !== undefined) updates.name = name;
-      if (image !== undefined) updates.image = image;
+    const res = await fetch(`${BACKEND_URL}/api/users`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, role, name, image }),
+    });
 
-      await auth.api.updateUser({
-        headers: request.headers,
-        body: updates,
-      });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    // Update role via MongoDB directly (admin-only action)
-    if (role !== undefined) {
-      const validRoles = ["admin", "librarian", "reader"];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json(
-          { error: "Invalid role" },
-          { status: 400 }
-        );
-      }
-
-      const db = await getDb();
-      const collection = db.collection("user");
-      await collection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { role, updatedAt: new Date() } }
-      );
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
@@ -83,12 +53,9 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE /api/users — Delete user
+// DELETE /api/users?id=xxx — Delete user
 export async function DELETE(request: NextRequest) {
   try {
-    const db = await getDb();
-    const collection = db.collection("user");
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -99,16 +66,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const res = await fetch(`${BACKEND_URL}/api/users?id=${id}`, {
+      method: "DELETE",
+    });
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(

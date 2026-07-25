@@ -43,8 +43,12 @@ export default function LibrarianDashboard() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [pathname]);
 
-  function handleAdvanceDeliveryStatus(id, status) {
-    updateDeliveryStatus(id, status);
+  async function handleAdvanceDeliveryStatus(id, status) {
+    console.log(`[LibrarianDashboard] Advancing delivery ${id} to ${status}`);
+    await updateDeliveryStatus(id, status);
+    console.log(`[LibrarianDashboard] Status updated, refetching deliveries...`);
+    await fetchDeliveries();
+    console.log(`[LibrarianDashboard] Refetch complete`);
   }
 
   return (

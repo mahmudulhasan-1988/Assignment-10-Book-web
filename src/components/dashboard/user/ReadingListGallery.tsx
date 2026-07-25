@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { BookOpen, Trash2, Loader2 } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
+import { BookOpen, Trash2 } from "lucide-react";
 import { useReadingList } from "@/lib/reading-list-context";
 import Link from "next/link";
 
@@ -17,14 +16,7 @@ const BOOK_COLORS = [
 ];
 
 export default function ReadingListGallery() {
-  const { data: session } = useSession();
-  const { items, loading, fetchReadingList, removeFromReadingList } = useReadingList();
-
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchReadingList(session.user.id);
-    }
-  }, [session?.user?.id, fetchReadingList]);
+  const { items, loading, removeFromReadingList } = useReadingList();
 
   if (loading) {
     return (

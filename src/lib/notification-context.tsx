@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import toast from "react-hot-toast";
+import { useSession } from "@/lib/auth-client";
+import { usePathname } from "next/navigation";
 
 export interface Notification {
   _id: string;
@@ -42,8 +44,17 @@ export function useNotifications() {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Auto-detect role from pathname
+  const role = pathname.includes("/dashboard/admin")
+    ? "admin"
+    : pathname.includes("/dashboard/librarian")
+    ? "librarian"
+    : "reader";
 
   const fetchNotifications = useCallback(async (userId: string, role: string) => {
     setLoading(true);
@@ -59,7 +70,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       const deliveries = await res.json();
 
-      const notifs: Notification[] = deliveries.map((d: any) => {
+      // Filter out old anonymous entries
+      const validDeliveries = Array.isArray(deliveries)
+        ? deliveries.filter((d: any) => d.userId && d.userId !== "anonymous")
+        : [];
+
+      const notifs: Notification[] = validDeliveries.map((d: any) => {
         const isOwn = d.userId === userId;
         let type: Notification["type"] = "delivery_request";
         let title = "";
@@ -118,6 +134,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }, []);
+
+  // Auto-fetch notifications when session loads (handles page refresh)
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchNotifications(session.user.id, role);
+    }
+  }, [session?.user?.id, role, fetchNotifications]);
+
+  // Auto-refresh notifications (10s for librarian/admin, 30s for reader)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const intervalMs = (role === "librarian" || role === "admin") ? 10000 : 30000;
+    const interval = setInterval(() => {
+      fetchNotifications(session.user.id, role);
+    }, intervalMs);
+    return () => clearInterval(interval);
+  }, [session?.user?.id, role, fetchNotifications]);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>

@@ -32,12 +32,16 @@ export function AdminDashboard() {
     setLoading(true);
     try {
       const [booksRes, usersRes, deliveriesRes] = await Promise.all([
-        fetch("/api/books"),
+        fetch("/api/books?page=1&limit=1000"),
         fetch("/api/users"),
         fetch("/api/deliveries"),
       ]);
 
-      if (booksRes.ok) setBooks(await booksRes.json());
+      if (booksRes.ok) {
+        const booksData = await booksRes.json();
+        // Handle both paginated and array responses
+        setBooks(booksData.books || (Array.isArray(booksData) ? booksData : []));
+      }
       if (usersRes.ok) setUsers(await usersRes.json());
       if (deliveriesRes.ok) setDeliveries(await deliveriesRes.json());
     } catch (error) {

@@ -10,6 +10,7 @@ import MyReviews from "@/components/dashboard/user/MyReviews";
 import { useSession } from "@/lib/auth-client";
 import { useDeliveries } from "@/lib/delivery-context";
 import { useReviews } from "@/lib/review-context";
+import { useReadingList } from "@/lib/reading-list-context";
 
 // Lazy load heavy recharts component — only loaded when overview tab is active
 const OverviewCharts = lazy(() => import("@/components/dashboard/user/OverviewCharts"));
@@ -54,7 +55,9 @@ export default function UserDashboard() {
   const [activeSection, setActiveSection] = useState<SectionKey>("overview");
   const { data: session } = useSession();
   const { deliveries, fetchDeliveries } = useDeliveries();
-  const { reviews, fetchUserReviews } = useReviews();
+  const { reviews: rawReviews, fetchUserReviews } = useReviews();
+  const reviews = rawReviews || [];
+  const { items: readingListItems } = useReadingList();
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -128,7 +131,7 @@ export default function UserDashboard() {
         <>
           <SectionHeading
             title="My Reading List"
-            count={`${deliveredCount} completed`}
+            count={`${readingListItems.length} items`}
             icon={BookMarked}
           />
           <ReadingListGallery />

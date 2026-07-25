@@ -6,7 +6,7 @@ import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
 
 export default function CTASection() {
   return (
-    <section className="py-20 bg-gradient-to-br from-[#1a2e1a] via-[#243524] to-[#1a2e1a] relative overflow-hidden">
+    <section className="py-20 relative overflow-hidden" style={{ backgroundColor: "#1a2e1a" }}>
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-[var(--rr-gold)]/5 blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-[var(--rr-gold)]/5 blur-3xl" />
@@ -21,9 +21,9 @@ export default function CTASection() {
             <Link href="/books" className="inline-flex items-center gap-2 px-8 py-4 rounded-full border border-white/30 text-white font-semibold text-lg hover:bg-white/10 transition-all duration-300"><BookOpen size={20} /> Browse Books</Link>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.4 }} className="mt-12 flex flex-wrap items-center justify-center gap-8 text-sm text-white/50">
-            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" /> Free Delivery</div>
-            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" /> No Hidden Fees</div>
-            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" /> Cancel Anytime</div>
+            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[var(--rr-sage)]" /> Free Delivery</div>
+            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[var(--rr-sage)]" /> No Hidden Fees</div>
+            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-[var(--rr-sage)]" /> Cancel Anytime</div>
           </motion.div>
         </div>
       </div>

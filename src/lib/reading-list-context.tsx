@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import toast from "react-hot-toast";
+import { useSession } from "@/lib/auth-client";
 
 export interface ReadingListItem {
   _id: string;
@@ -39,6 +40,7 @@ export function useReadingList() {
 export function ReadingListProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ReadingListItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const { data: session } = useSession();
 
   const fetchReadingList = useCallback(async (userId: string) => {
     setLoading(true);
@@ -46,7 +48,9 @@ export function ReadingListProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`/api/reading-list?userId=${userId}`);
       if (res.ok) {
         const data = await res.json();
-        setItems(data);
+        const list = Array.isArray(data) ? data : [];
+        console.log(`[ReadingList] Fetched ${list.length} items for user ${userId}`);
+        setItems(list);
       }
     } catch (error) {
       console.error("Error fetching reading list:", error);
@@ -55,7 +59,21 @@ export function ReadingListProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Auto-fetch reading list when session loads (handles page refresh)
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchReadingList(session.user.id);
+    }
+  }, [session?.user?.id, fetchReadingList]);
+
   const addToReadingList = useCallback(async (item: Omit<ReadingListItem, "_id" | "addedAt">) => {
+    // Check for duplicates before adding
+    const exists = items.some((i) => i.bookId === item.bookId);
+    if (exists) {
+      toast(`"${item.bookTitle}" is already in your reading list`);
+      return false;
+    }
+
     try {
       const res = await fetch("/api/reading-list", {
         method: "POST",
@@ -64,6 +82,7 @@ export function ReadingListProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const newItem = await res.json();
+        console.log(`[ReadingList] Added item: ${item.bookTitle}, total now: ${items.length + 1}`);
         setItems((prev) => [newItem, ...prev]);
         toast.success(`"${item.bookTitle}" added to reading list`);
         return true;
@@ -77,7 +96,7 @@ export function ReadingListProvider({ children }: { children: ReactNode }) {
       toast.error("Failed to add to reading list");
       return false;
     }
-  }, []);
+  }, [items]);
 
   const removeFromReadingList = useCallback(async (bookId: string) => {
     try {

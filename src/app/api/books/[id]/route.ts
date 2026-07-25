@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 // GET /api/books/[id] — fetch a single book
 export async function GET(
@@ -9,30 +9,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = await getDb();
-    const collection = db.collection("books");
 
-    let book;
-    if (ObjectId.isValid(id)) {
-      book = await collection.findOne({ _id: new ObjectId(id) });
-    } else {
-      book = await collection.findOne({ id });
+    const res = await fetch(`${BACKEND_URL}/api/books/${id}`);
+
+    if (!res.ok) {
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
     }
 
-    if (!book) {
-      return NextResponse.json(
-        { error: "Book not found" },
-        { status: 404 }
-      );
-    }
-
-    // Map _id to id
-    const mapped = {
-      ...book,
-      id: book._id?.toString() || "",
-    };
-
-    return NextResponse.json(mapped);
+    const data = await res.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching book:", error);
     return NextResponse.json(

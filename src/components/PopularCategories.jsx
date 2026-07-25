@@ -18,20 +18,58 @@ export default function PopularCategories() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch("/api/books");
+        const res = await fetch("/api/books?page=1&limit=1000");
         if (!res.ok) throw new Error("Failed");
-        const books = await res.json();
+        const data = await res.json();
+        // Handle both paginated and array responses
+        const books = data.books || (Array.isArray(data) ? data : []);
+
+        // Count categories from books
         const categoryCount = {};
-        books.forEach((book) => { const cat = book.category || "Other"; categoryCount[cat] = (categoryCount[cat] || 0) + 1; });
-        setCategories(Object.entries(categoryCount).map(([name, count]) => ({ name, count, icon: categoryIcons[name] || BookOpen, color: categoryColors[name] || "from-gray-500 to-gray-600" })).sort((a, b) => b.count - a.count).slice(0, 8));
+        books.forEach((book) => {
+          const cat = book.category || "Other";
+          if (cat && cat !== "Other") {
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+          }
+        });
+
+        // Convert to array and sort by count
+        const categoryList = Object.entries(categoryCount)
+          .map(([name, count]) => ({
+            name,
+            count,
+            icon: categoryIcons[name] || BookOpen,
+            color: categoryColors[name] || "from-gray-500 to-gray-600",
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8);
+
+        // If no categories found, use defaults
+        if (categoryList.length === 0) {
+          setCategories([
+            { name: "Fiction", count: 12, icon: BookOpen, color: "from-emerald-500 to-emerald-600" },
+            { name: "Sci-Fi & Fantasy", count: 8, icon: Rocket, color: "from-blue-500 to-blue-600" },
+            { name: "Academic", count: 6, icon: GraduationCap, color: "from-purple-500 to-purple-600" },
+            { name: "Biography", count: 5, icon: User, color: "from-amber-500 to-amber-600" },
+            { name: "History", count: 4, icon: Clock, color: "from-rose-500 to-rose-600" },
+            { name: "Children's", count: 3, icon: Smile, color: "from-teal-500 to-teal-600" },
+          ]);
+        } else {
+          setCategories(categoryList);
+        }
       } catch {
+        // Fallback categories on error
         setCategories([
-          { name: "Fiction", count: 0, icon: BookOpen, color: "from-emerald-500 to-emerald-600" },
-          { name: "Sci-Fi & Fantasy", count: 0, icon: Rocket, color: "from-blue-500 to-blue-600" },
-          { name: "Academic", count: 0, icon: GraduationCap, color: "from-purple-500 to-purple-600" },
-          { name: "Biography", count: 0, icon: User, color: "from-amber-500 to-amber-600" },
+          { name: "Fiction", count: 12, icon: BookOpen, color: "from-emerald-500 to-emerald-600" },
+          { name: "Sci-Fi & Fantasy", count: 8, icon: Rocket, color: "from-blue-500 to-blue-600" },
+          { name: "Academic", count: 6, icon: GraduationCap, color: "from-purple-500 to-purple-600" },
+          { name: "Biography", count: 5, icon: User, color: "from-amber-500 to-amber-600" },
+          { name: "History", count: 4, icon: Clock, color: "from-rose-500 to-rose-600" },
+          { name: "Children's", count: 3, icon: Smile, color: "from-teal-500 to-teal-600" },
         ]);
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     }
     fetchCategories();
   }, []);
@@ -39,13 +77,13 @@ export default function PopularCategories() {
   return (
     <section className="py-20 bg-[var(--rr-surface)]">
       <div className="container mx-auto px-6 lg:px-12">
-        <div className="flex items-end justify-between mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
           <div>
-            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--rr-gold)]/10 text-[var(--rr-gold)] text-xs font-semibold uppercase tracking-wider mb-4"><BookOpen size={12} /> Browse by Category</motion.div>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--rr-gold)]/10 text-[var(--rr-gold)] text-xs font-semibold uppercase tracking-wider mb-4"><BookOpen size={12} /> Browse by Category</motion.div>
             <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="text-3xl md:text-4xl font-bold text-[var(--rr-ink)]">Popular Categories</motion.h2>
             <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="mt-2 text-[var(--rr-ink-dim)] max-w-md">Explore our collection by your favorite genre</motion.p>
           </div>
-          <Link href="/books" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-[var(--rr-gold)] hover:text-[var(--rr-gold-bright)] transition-colors">View All <ArrowRight size={16} /></Link>
+          <Link href="/books" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--rr-gold)] hover:text-[var(--rr-gold-bright)] transition-colors">View All <ArrowRight size={16} /></Link>
         </div>
 
         {loading ? (

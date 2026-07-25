@@ -16,6 +16,7 @@ import {
   Truck,
   BookOpen,
   Star,
+  RefreshCw,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/lib/auth-client";
@@ -63,22 +64,6 @@ export default function DashboardNavbar({
   const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
-
-  // Fetch notifications on mount
-  useEffect(() => {
-    if (session?.user?.id) {
-      fetchNotifications(session.user.id, role);
-    }
-  }, [session?.user?.id, role, fetchNotifications]);
-
-  // Auto-refresh notifications every 30 seconds
-  useEffect(() => {
-    if (!session?.user?.id) return;
-    const interval = setInterval(() => {
-      fetchNotifications(session.user.id, role);
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [session?.user?.id, role, fetchNotifications]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -164,13 +149,25 @@ export default function DashboardNavbar({
 
           {/* Notifications Bell */}
           <div className="relative" ref={notifRef}>
-            <button
-              onClick={() => {
-                setNotifOpen(!notifOpen);
-                setDropdownOpen(false);
-              }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--rr-hairline)] text-[var(--rr-ink-dim)] hover:bg-[var(--rr-surface)] hover:text-[var(--rr-ink)] transition-colors"
-            >
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  if (session?.user?.id) {
+                    fetchNotifications(session.user.id, role);
+                  }
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--rr-ink-dim)] hover:bg-[var(--rr-surface)] hover:text-[var(--rr-ink)] transition-colors"
+                title="Refresh notifications"
+              >
+                <RefreshCw size={14} />
+              </button>
+              <button
+                onClick={() => {
+                  setNotifOpen(!notifOpen);
+                  setDropdownOpen(false);
+                }}
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--rr-hairline)] text-[var(--rr-ink-dim)] hover:bg-[var(--rr-surface)] hover:text-[var(--rr-ink)] transition-colors"
+              >
               <Bell size={18} />
               {unreadCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rr-wine)] px-1 text-[9px] font-bold text-white">
@@ -178,6 +175,7 @@ export default function DashboardNavbar({
                 </span>
               )}
             </button>
+            </div>
 
             {/* Notification Panel */}
             {notifOpen && (

@@ -21,7 +21,7 @@ export default function Newsletter() {
 
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1a2e1a] via-[#243524] to-[#1a2e1a]" />
+      <div className="absolute inset-0" style={{ backgroundColor: "#1a2e1a" }} />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-[var(--rr-gold)]/5 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-[var(--rr-gold)]/5 blur-3xl" />

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Truck,
@@ -21,12 +21,21 @@ interface DeliveryRequestModalProps {
 
 export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestModalProps) {
   const { data: session } = useSession();
-  const { addDelivery } = useDeliveries();
+  const { addDelivery, hasExistingDelivery, fetchDeliveries } = useDeliveries();
   const [step, setStep] = useState<"confirm" | "loading" | "success" | "error">("confirm");
   const [errorMsg, setErrorMsg] = useState("");
   const [imageError, setImageError] = useState(false);
 
   const isLoggedIn = !!session?.user;
+
+  // Fetch user's deliveries when modal opens (for duplicate check)
+  useEffect(() => {
+    if (isLoggedIn && session?.user?.id) {
+      fetchDeliveries(session.user.id);
+    }
+  }, [isLoggedIn, session?.user?.id, fetchDeliveries]);
+
+  const existingDelivery = hasExistingDelivery(book.id || (book as any)._id);
 
   const estimatedDate = new Date();
   estimatedDate.setDate(estimatedDate.getDate() + 3);
@@ -46,6 +55,9 @@ export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestM
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId: session?.user?.id,
+          userName: session?.user?.name || "Anonymous",
+          userEmail: session?.user?.email || "",
           bookId: book.id,
           bookTitle: book.title,
           bookAuthor: book.author,
@@ -120,6 +132,25 @@ export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestM
                 </div>
               </div>
 
+              {/* Existing Delivery Warning */}
+              {existingDelivery && (
+                <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20">
+                  <div className="flex items-start gap-3">
+                    <Truck size={16} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                        You already have this book
+                      </p>
+                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                        This book is already in your delivery list with status{" "}
+                        <span className="font-medium">{existingDelivery.status}</span>.
+                        You cannot request the same book twice.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Delivery Details */}
               <div className="mb-6 space-y-3">
                 <div className="flex items-center justify-between rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3">
@@ -154,15 +185,17 @@ export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestM
                   onClick={onClose}
                   className="flex-1 rounded-lg border border-[var(--rr-hairline)] px-4 py-3 text-sm font-medium text-[var(--rr-ink)] hover:bg-[var(--rr-surface-2)] transition-colors"
                 >
-                  Cancel
+                  {existingDelivery ? "Close" : "Cancel"}
                 </button>
-                <button
-                  onClick={handleConfirm}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--rr-gold)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--rr-gold-bright)] transition-colors"
-                >
-                  <Truck size={16} />
-                  Confirm Request
-                </button>
+                {!existingDelivery && (
+                  <button
+                    onClick={handleConfirm}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--rr-gold)] px-4 py-3 text-sm font-medium text-white hover:bg-[var(--rr-gold-bright)] transition-colors"
+                  >
+                    <Truck size={16} />
+                    Confirm Request
+                  </button>
+                )}
               </div>
             </>
           )}

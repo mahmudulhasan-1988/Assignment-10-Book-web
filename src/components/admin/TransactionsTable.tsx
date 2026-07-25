@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, Loader2, ChevronUp } from "lucide-react";
+import { Search, X, Loader2, ChevronUp, ClipboardCopy, Check } from "lucide-react";
+import { useDeliveries } from "@/lib/delivery-context";
+import toast from "react-hot-toast";
 
 const STATUS_COLORS: Record<string, string> = {
   Pending: "bg-[var(--rr-gold)]/10 text-[var(--rr-gold)]",
@@ -59,12 +61,28 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { updateDeliveryStatus, fetchDeliveries } = useDeliveries();
+
+  async function handleCopyId(id: string) {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      // fallback: select text
+    }
+  }
 
   const filtered = transactions.filter((tx) => {
+    const q = searchQuery.toLowerCase();
+    const txId = tx._id || tx.id || "";
     const matchesSearch =
-      tx.bookTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tx.userEmail?.toLowerCase().includes(searchQuery.toLowerCase());
+      txId.toLowerCase().includes(q) ||
+      tx.bookTitle?.toLowerCase().includes(q) ||
+      tx.userName?.toLowerCase().includes(q) ||
+      tx.userEmail?.toLowerCase().includes(q) ||
+      tx.status?.toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || tx.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -82,14 +100,13 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
     const txId = tx._id || tx.id;
     setLoadingId(txId);
     try {
-      await fetch(`/api/deliveries/${txId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
-      });
+      await updateDeliveryStatus(txId, nextStatus as any);
+      toast.success(`"${tx.bookTitle}" marked as ${nextStatus}`);
+      fetchDeliveries();
       onRefresh?.();
     } catch (error) {
       console.error("Error updating status:", error);
+      toast.error("Failed to update delivery status");
     } finally {
       setLoadingId(null);
     }
@@ -133,7 +150,7 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--rr-ink-dim)]" />
           <input
             type="text"
-            placeholder="Search by book, user, or email..."
+            placeholder="Search by ID, book, user, email, or status..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] py-2.5 pl-10 pr-4 text-sm text-[var(--rr-ink)] placeholder-[var(--rr-ink-dim)] outline-none focus:border-[var(--rr-gold)]"
@@ -164,6 +181,9 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
           <thead>
             <tr className="border-b border-[var(--rr-hairline)] bg-[var(--rr-bg)]">
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-[var(--rr-ink-dim)]">
+                Transaction ID
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-[var(--rr-ink-dim)]">
                 Book
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-[var(--rr-ink-dim)]">
@@ -186,7 +206,7 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-sm text-[var(--rr-ink-dim)]">
+                <td colSpan={7} className="px-4 py-12 text-center text-sm text-[var(--rr-ink-dim)]">
                   {searchQuery || statusFilter !== "all" ? "No transactions match your filters" : "No transactions yet"}
                 </td>
               </tr>
@@ -196,6 +216,31 @@ export function TransactionsTable({ transactions, onRefresh }: { transactions: T
                 const nextStatus = NEXT_STATUS[tx.status];
                 return (
                   <tr key={txId} className="border-b border-[var(--rr-hairline)] last:border-0 hover:bg-[var(--rr-bg)]/50">
+                    {/* Transaction ID */}
+                    <td className="px-4 py-3">
+                      {txId ? (
+                        <button
+                          onClick={() => handleCopyId(txId)}
+                          className="group flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-mono text-[var(--rr-ink-dim)] hover:bg-[var(--rr-surface-2)] hover:text-[var(--rr-ink)] transition-colors cursor-pointer"
+                          title="Click to copy full ID"
+                        >
+                          {copiedId === txId ? (
+                            <>
+                              <Check size={12} className="text-[var(--rr-sage)]" />
+                              <span className="text-[var(--rr-sage)]">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <ClipboardCopy size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <span>{txId.slice(-8)}</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-xs font-mono text-[var(--rr-ink-dim)]">N/A</span>
+                      )}
+                    </td>
+
                     {/* Book */}
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-[var(--rr-ink)]">{tx.bookTitle}</p>

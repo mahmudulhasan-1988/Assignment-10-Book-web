@@ -59,21 +59,29 @@ export default function Footer() {
             </p>
 
             <div className="flex gap-3 mt-6">
-              <Button isIconOnly variant="flat" radius="full">
-                <FaFacebookF />
-              </Button>
+              <Link href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+                <Button isIconOnly variant="flat" radius="full">
+                  <FaFacebookF />
+                </Button>
+              </Link>
 
-              <Button isIconOnly variant="flat" radius="full">
-                <FaTwitter />
-              </Button>
+              <Link href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+                <Button isIconOnly variant="flat" radius="full">
+                  <FaTwitter />
+                </Button>
+              </Link>
 
-              <Button isIconOnly variant="flat" radius="full">
-                <FaInstagram />
-              </Button>
+              <Link href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+                <Button isIconOnly variant="flat" radius="full">
+                  <FaInstagram />
+                </Button>
+              </Link>
 
-              <Button isIconOnly variant="flat" radius="full">
-                <FaLinkedinIn />
-              </Button>
+              <Link href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+                <Button isIconOnly variant="flat" radius="full">
+                  <FaLinkedinIn />
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -117,6 +125,15 @@ export default function Footer() {
                   className="text-[var(--rr-ink-dim)] hover:text-[var(--rr-gold)] transition"
                 >
                   About Us
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/pricing"
+                  className="text-[var(--rr-ink-dim)] hover:text-[var(--rr-gold)] transition"
+                >
+                  Pricing
                 </Link>
               </li>
 
@@ -185,7 +202,7 @@ export default function Footer() {
 
               <div className="flex items-center gap-2 text-[var(--rr-ink-dim)]">
                 <Phone size={16} />
-                <span>+880 1234 567890</span>
+                <span>+880 1811-562080</span>
               </div>
             </div>
           </div>

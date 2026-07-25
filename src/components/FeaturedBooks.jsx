@@ -31,41 +31,41 @@ function BookCard({ book, onRequestDelivery }) {
 
   return (
     <motion.div variants={itemVariants} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="group relative">
-      <div className="relative overflow-hidden rounded-2xl bg-[var(--rr-surface)] shadow-md transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 border border-[var(--rr-hairline)]">
+      <div className="relative overflow-hidden rounded-2xl bg-[var(--rr-surface)] shadow-md transition-all duration-[400ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:shadow-2xl hover:-translate-y-3 hover:border-[var(--rr-gold)]/30 border border-[var(--rr-hairline)]">
         <div className="relative aspect-[3/4] overflow-hidden bg-[var(--rr-surface-2)]">
           {!imgError ? (
-            <Image src={book.coverImage} alt={book.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" onError={() => setImgError(true)} />
+            <Image src={book.coverImage} alt={book.title} fill className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-110" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" onError={() => setImgError(true)} />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[var(--rr-surface-2)]"><BookOpen size={40} className="text-[var(--rr-ink-dim)]" /></div>
           )}
-          <div className={`absolute inset-0 bg-black/60 flex items-center justify-center gap-3 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-            <Link href={`/books/${book.id}`} className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-900 transition-transform hover:scale-110"><Eye size={20} /></Link>
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRequestDelivery(book); }} className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--rr-gold)] text-white transition-transform hover:scale-110" title="Request Delivery"><Truck size={20} /></button>
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-center justify-center gap-3 transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+            <Link href={`/books/${book._id || book.id}`} className={`flex h-12 w-12 items-center justify-center rounded-full bg-[var(--rr-surface)] text-[var(--rr-ink)] transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:scale-110 hover:shadow-lg ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} style={{ transitionDelay: isHovered ? '50ms' : '0ms' }}><Eye size={20} /></Link>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRequestDelivery(book); }} className={`flex h-12 w-12 items-center justify-center rounded-full bg-[var(--rr-gold)] text-white transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] hover:scale-110 hover:shadow-lg hover:shadow-[var(--rr-gold)]/30 ${isHovered ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`} style={{ transitionDelay: isHovered ? '100ms' : '0ms' }} title="Request Delivery"><Truck size={20} /></button>
           </div>
           <div className="absolute top-3 left-3">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[book.status] || statusColors.available}`}>{statusLabels[book.status] || "Available"}</span>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-300 ${statusColors[book.status] || statusColors.available}`}>{statusLabels[book.status] || "Available"}</span>
           </div>
           <div className="absolute top-3 right-3">
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/90 dark:bg-[var(--rr-surface)]/90 backdrop-blur-sm">
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--rr-surface)]/90 backdrop-blur-sm transition-all duration-300 group-hover:scale-110">
               <Star size={12} className="fill-amber-400 text-amber-400" />
-              <span className="text-xs font-bold text-gray-900 dark:text-[var(--rr-ink)]">{book.rating || 0}</span>
+              <span className="text-xs font-bold text-[var(--rr-ink)]">{book.rating || 0}</span>
             </div>
           </div>
         </div>
-        <div className="p-4">
+        <div className="p-4 transition-all duration-300">
           <div className="flex items-center gap-1.5 mb-2">
-            <BookOpen size={12} className="text-[var(--rr-gold)]" />
+            <BookOpen size={12} className="text-[var(--rr-gold)] transition-transform duration-300 group-hover:scale-110" />
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--rr-gold)]">{book.category}</span>
           </div>
-          <h3 className="font-display text-base font-semibold text-[var(--rr-ink)] line-clamp-1 group-hover:text-[var(--rr-gold)] transition-colors">{book.title}</h3>
-          <p className="mt-1 text-sm text-[var(--rr-ink-dim)]">{book.author}</p>
+          <h3 className="font-display text-base font-semibold text-[var(--rr-ink)] line-clamp-1 group-hover:text-[var(--rr-gold)] transition-colors duration-300">{book.title}</h3>
+          <p className="mt-1 text-sm text-[var(--rr-ink-dim)] transition-colors duration-300 group-hover:text-[var(--rr-ink)]">{book.author}</p>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold text-[var(--rr-ink)]">${(book.deliveryFee || 0).toFixed(2)}</span>
+              <span className="text-lg font-bold text-[var(--rr-ink)] transition-colors duration-300 group-hover:text-[var(--rr-gold)]">${(book.deliveryFee || 0).toFixed(2)}</span>
               <span className="text-xs text-[var(--rr-ink-dim)]">delivery</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-[var(--rr-ink-dim)]">
-              <Star size={10} className="fill-gray-300 text-gray-300" />
+              <Star size={10} className="fill-[var(--rr-hairline)] text-[var(--rr-hairline)]" />
               <span>{(book.totalReviews || 0).toLocaleString()} reviews</span>
             </div>
           </div>
@@ -85,10 +85,12 @@ export default function FeaturedBooks() {
     async function fetchFeaturedBooks() {
       try {
         setLoading(true);
-        const res = await fetch("/api/books?sort=newest");
+        const res = await fetch("/api/books?page=1&limit=8&sort=newest");
         if (!res.ok) throw new Error("Failed to fetch books");
         const data = await res.json();
-        setBooks(data.slice(0, 8));
+        // Handle both paginated and array responses
+        const booksList = data.books || (Array.isArray(data) ? data : []);
+        setBooks(booksList.slice(0, 8));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -103,15 +105,15 @@ export default function FeaturedBooks() {
   return (
     <section className="py-20 bg-[var(--rr-bg)]">
       <div className="container mx-auto px-6 lg:px-12">
-        <div className="flex items-end justify-between mb-12">
-          <div>
-            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--rr-gold)]/10 text-[var(--rr-gold)] text-xs font-semibold uppercase tracking-wider mb-4">
-              <Star size={12} className="fill-current" /> Featured Collection
-            </motion.div>
-            <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-3xl md:text-4xl font-bold text-[var(--rr-ink)]">Trending Books</motion.h2>
-            <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="mt-2 text-[var(--rr-ink-dim)] max-w-md">Discover our most popular books, handpicked for our readers</motion.p>
-          </div>
-          <Link href="/books" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-[var(--rr-gold)] hover:text-[var(--rr-gold-bright)] transition-colors">View All Books <ChevronRight size={16} /></Link>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+            <div>
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--rr-gold)]/10 text-[var(--rr-gold)] text-xs font-semibold uppercase tracking-wider mb-4">
+                <Star size={12} className="fill-current" /> Featured Collection
+              </motion.div>
+              <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-3xl md:text-4xl font-bold text-[var(--rr-ink)]">Trending Books</motion.h2>
+              <motion.p initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="mt-2 text-[var(--rr-ink-dim)] max-w-md">Discover our most popular books, handpicked for our readers</motion.p>
+            </div>
+            <Link href="/books" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--rr-gold)] hover:text-[var(--rr-gold-bright)] transition-colors">View All Books <ChevronRight size={16} /></Link>
         </div>
 
         {loading ? (
@@ -122,7 +124,7 @@ export default function FeaturedBooks() {
           <div className="flex flex-col items-center justify-center py-16 text-center"><BookOpen size={48} className="text-[var(--rr-ink-dim)] mb-4 opacity-30" /><p className="text-[var(--rr-ink-dim)]">No books available yet</p></div>
         ) : (
           <motion.div variants={containerVariants} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {displayBooks.map((book) => (<BookCard key={book.id} book={book} onRequestDelivery={setSelectedBook} />))}
+            {displayBooks.map((book) => (<BookCard key={book._id || book.id} book={book} onRequestDelivery={setSelectedBook} />))}
           </motion.div>
         )}
 

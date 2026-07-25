@@ -26,7 +26,7 @@ export default function StatsShelf() {
 
   const spines = loading
     ? Array.from({ length: 3 }).map((_, i) => ({
-        label: "",
+        label: `loading-${i}`,
         value: "",
         foot: "",
         gradient: spineGradients[i],

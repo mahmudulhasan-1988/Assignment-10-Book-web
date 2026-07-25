@@ -1,52 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { verifyAuth } from "@/lib/verify-auth";
-import { ObjectId } from "mongodb";
 
-interface ReviewDocument {
-  _id?: ObjectId;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  userImage?: string;
-  bookId: string;
-  bookTitle: string;
-  rating: number;
-  comment: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
-// Recalculate and update a book's average rating and total reviews
-async function updateBookRating(bookId: string) {
-  const db = await getDb();
-  const reviewsCollection = db.collection<ReviewDocument>("reviews");
-  const booksCollection = db.collection("books");
-
-  const reviews = await reviewsCollection.find({ bookId }).toArray();
-  const avgRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-    : 0;
-
-  await booksCollection.updateOne(
-    { _id: new ObjectId(bookId) },
-    { $set: { rating: Math.round(avgRating * 10) / 10, totalReviews: reviews.length, updatedAt: new Date() } }
-  );
-}
-
-// GET /api/reviews?bookId=xxx or ?userId=xxx — fetch reviews for a book or by a user
+// GET /api/reviews?bookId=xxx or ?userId=xxx
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    const collection = db.collection<ReviewDocument>("reviews");
-
     const { searchParams } = new URL(request.url);
     const bookId = searchParams.get("bookId");
     const userId = searchParams.get("userId");
-
-    const filter: Record<string, string> = {};
-    if (bookId) filter.bookId = bookId;
-    if (userId) filter.userId = userId;
 
     if (!bookId && !userId) {
       return NextResponse.json(
@@ -55,18 +16,58 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const reviews = await collection
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .toArray();
+    // If bookId is provided, fetch by bookId directly
+    if (bookId) {
+      const url = `${BACKEND_URL}/api/reviews?bookId=${bookId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return NextResponse.json(data);
+    }
 
-    // Calculate average rating
-    const avgRating =
-      reviews.length > 0
-        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-        : 0;
+    // If userId is provided, fetch reviews for all books the user has interacted with
+    // First get the user's deliveries to find bookIds, then fetch reviews for each
+    try {
+      const deliveriesRes = await fetch(`${BACKEND_URL}/api/deliveries?userId=${userId}`);
+      const deliveries = deliveriesRes.ok ? await deliveriesRes.json() : [];
 
-    return NextResponse.json({ reviews, avgRating, totalReviews: reviews.length });
+      // Get unique bookIds from deliveries
+      const bookIds = [...new Set(deliveries.map((d: any) => d.bookId).filter(Boolean))];
+
+      if (bookIds.length === 0) {
+        return NextResponse.json({ reviews: [], avgRating: 0, totalReviews: 0 });
+      }
+
+      // Fetch reviews for each bookId in parallel
+      const reviewPromises = bookIds.map(async (bid: string) => {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/reviews?bookId=${bid}`);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return data.reviews || [];
+        } catch {
+          return [];
+        }
+      });
+
+      const reviewArrays = await Promise.all(reviewPromises);
+      const allReviews = reviewArrays.flat();
+
+      // Filter by userId
+      const filtered = allReviews.filter((r: any) => r.userId === userId);
+
+      const avgRating =
+        filtered.length > 0
+          ? filtered.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / filtered.length
+          : 0;
+
+      return NextResponse.json({
+        reviews: filtered,
+        avgRating,
+        totalReviews: filtered.length,
+      });
+    } catch {
+      return NextResponse.json({ reviews: [], avgRating: 0, totalReviews: 0 });
+    }
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return NextResponse.json(
@@ -76,11 +77,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/reviews — update a review
+// POST /api/reviews — create a review
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    const res = await fetch(`${BACKEND_URL}/api/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    console.error("Error creating review:", error);
+    return NextResponse.json(
+      { error: "Failed to create review" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/reviews — update a review (proxy to DELETE + POST since backend doesn't have PUT)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const body = await request.json();
     const { reviewId, rating, comment } = body;
 
@@ -91,35 +117,33 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return NextResponse.json(
-        { error: "Rating must be between 1 and 5" },
-        { status: 400 }
-      );
+    // Delete old review and create new one (simplified approach)
+    const deleteRes = await fetch(`${BACKEND_URL}/api/reviews/${reviewId}`, {
+      method: "DELETE",
+    });
+
+    if (!deleteRes.ok) {
+      const data = await deleteRes.json();
+      return NextResponse.json(data, { status: deleteRes.status });
     }
 
-    const db = await getDb();
-    const collection = db.collection<ReviewDocument>("reviews");
+    // Create new review with updated data
+    const createRes = await fetch(`${BACKEND_URL}/api/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...body,
+        reviewId: undefined,
+      }),
+    });
 
-    const updateFields: Record<string, unknown> = { updatedAt: new Date() };
-    if (rating !== undefined) updateFields.rating = rating;
-    if (comment !== undefined) updateFields.comment = comment;
+    const data = await createRes.json();
 
-    const result = await collection.updateOne(
-      { _id: new ObjectId(reviewId), userId: session.user.id },
-      { $set: updateFields }
-    );
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { error: "Review not found or unauthorized" },
-        { status: 404 }
-      );
+    if (!createRes.ok) {
+      return NextResponse.json(data, { status: createRes.status });
     }
 
-    const updated = await collection.findOne({ _id: new ObjectId(reviewId) });
-    if (updated?.bookId) await updateBookRating(updated.bookId);
-    return NextResponse.json(updated);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error updating review:", error);
     return NextResponse.json(
@@ -129,91 +153,9 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// POST /api/reviews — create a review
-export async function POST(request: NextRequest) {
-  try {
-    const session = await verifyAuth(request);
-
-    const body = await request.json();
-    const { bookId, bookTitle, rating, comment } = body;
-
-    if (!bookId || !rating) {
-      return NextResponse.json(
-        { error: "Book ID and rating are required" },
-        { status: 400 }
-      );
-    }
-
-    if (rating < 1 || rating > 5) {
-      return NextResponse.json(
-        { error: "Rating must be between 1 and 5" },
-        { status: 400 }
-      );
-    }
-
-    const db = await getDb();
-    const collection = db.collection<ReviewDocument>("reviews");
-
-    // Check if user already reviewed this book
-    const existing = await collection.findOne({
-      userId: session.user.id,
-      bookId,
-    });
-
-    if (existing) {
-      // Update existing review
-      const result = await collection.updateOne(
-        { _id: existing._id },
-        {
-          $set: {
-            rating,
-            comment: comment || "",
-            updatedAt: new Date(),
-          },
-        }
-      );
-
-      const updated = await collection.findOne({ _id: existing._id });
-      await updateBookRating(bookId);
-      return NextResponse.json(updated);
-    }
-
-    const now = new Date();
-    const review: ReviewDocument = {
-      userId: session.user.id,
-      userName: session.user.name || "Anonymous",
-      userEmail: session.user.email || "",
-      userImage: (session.user as any).image || "",
-      bookId,
-      bookTitle: bookTitle || "",
-      rating,
-      comment: comment || "",
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const result = await collection.insertOne(review);
-
-    await updateBookRating(bookId);
-
-    return NextResponse.json(
-      { ...review, _id: result.insertedId },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Error creating review:", error);
-    return NextResponse.json(
-      { error: "Failed to create review" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/reviews — delete a review
+// DELETE /api/reviews?id=xxx — delete a review
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const { searchParams } = new URL(request.url);
     const reviewId = searchParams.get("id");
 
@@ -224,26 +166,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const db = await getDb();
-    const collection = db.collection<ReviewDocument>("reviews");
-
-    // Find the review first to get bookId
-    const review = await collection.findOne({
-      _id: new ObjectId(reviewId),
-      userId: session.user.id,
+    const res = await fetch(`${BACKEND_URL}/api/reviews/${reviewId}`, {
+      method: "DELETE",
     });
 
-    if (!review) {
-      return NextResponse.json(
-        { error: "Review not found or unauthorized" },
-        { status: 404 }
-      );
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    await collection.deleteOne({ _id: new ObjectId(reviewId) });
-    await updateBookRating(review.bookId);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error deleting review:", error);
     return NextResponse.json(

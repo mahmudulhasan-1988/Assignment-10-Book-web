@@ -1,43 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { verifyAuth } from "@/lib/verify-auth";
-import { ObjectId } from "mongodb";
 
-interface DeliveryDocument {
-  _id?: ObjectId;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
-  bookCover: string;
-  deliveryFee: number;
-  status: "Pending" | "Dispatched" | "Delivered";
-  requestDate: Date;
-  updatedAt: Date;
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 // GET /api/deliveries?userId=xxx
 export async function GET(request: NextRequest) {
   try {
-    const db = await getDb();
-    const collection = db.collection<DeliveryDocument>("deliveries");
-
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
-    let query = {};
-    if (userId) {
-      query = { userId };
-    }
+    const url = userId
+      ? `${BACKEND_URL}/api/deliveries?userId=${userId}`
+      : `${BACKEND_URL}/api/deliveries`;
 
-    const deliveries = await collection
-      .find(query)
-      .sort({ requestDate: -1 })
-      .toArray();
+    const res = await fetch(url);
+    const data = await res.json();
 
-    return NextResponse.json(deliveries);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching deliveries:", error);
     return NextResponse.json(
@@ -50,56 +28,21 @@ export async function GET(request: NextRequest) {
 // POST /api/deliveries
 export async function POST(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const body = await request.json();
-    const { bookId, bookTitle, bookAuthor, bookCover, deliveryFee } = body;
 
-    if (!bookId || !bookTitle) {
-      return NextResponse.json(
-        { error: "Book ID and title are required" },
-        { status: 400 }
-      );
-    }
-
-    const db = await getDb();
-    const collection = db.collection<DeliveryDocument>("deliveries");
-
-    // Check if user already has a pending delivery for this book
-    const existing = await collection.findOne({
-      userId: session.user.id,
-      bookId,
-      status: { $in: ["Pending", "Dispatched"] },
+    const res = await fetch(`${BACKEND_URL}/api/deliveries`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
 
-    if (existing) {
-      return NextResponse.json(
-        { error: "You already have an active delivery request for this book" },
-        { status: 409 }
-      );
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    const now = new Date();
-    const delivery: DeliveryDocument = {
-      userId: session.user.id,
-      userName: session.user.name || "Unknown",
-      userEmail: session.user.email || "",
-      bookId,
-      bookTitle,
-      bookAuthor: bookAuthor || "",
-      bookCover: bookCover || "",
-      deliveryFee: deliveryFee || 0,
-      status: "Pending",
-      requestDate: now,
-      updatedAt: now,
-    };
-
-    const result = await collection.insertOne(delivery);
-
-    return NextResponse.json(
-      { ...delivery, _id: result.insertedId },
-      { status: 201 }
-    );
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("Error creating delivery:", error);
     return NextResponse.json(
@@ -109,45 +52,32 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH /api/deliveries — update delivery status (for librarians)
+// PATCH /api/deliveries — update delivery fields
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await verifyAuth(request);
-
     const body = await request.json();
-    const { deliveryId, status } = body;
+    const { deliveryId, ...updateFields } = body;
 
-    if (!deliveryId || !status) {
+    if (!deliveryId) {
       return NextResponse.json(
-        { error: "Delivery ID and status are required" },
+        { error: "Delivery ID is required" },
         { status: 400 }
       );
     }
 
-    const validStatuses = ["Pending", "Dispatched", "Delivered"];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 }
-      );
+    const res = await fetch(`${BACKEND_URL}/api/deliveries/${deliveryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateFields),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    const db = await getDb();
-    const collection = db.collection<DeliveryDocument>("deliveries");
-
-    const result = await collection.updateOne(
-      { _id: new ObjectId(deliveryId) },
-      { $set: { status, updatedAt: new Date() } }
-    );
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { error: "Delivery not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error updating delivery:", error);
     return NextResponse.json(

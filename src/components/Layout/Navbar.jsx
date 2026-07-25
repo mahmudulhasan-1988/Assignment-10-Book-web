@@ -14,8 +14,6 @@ import {
 } from "next/navigation";
 
 import {
-  Menu,
-  X,
   BookOpen,
   LogIn,
   UserPlus,
@@ -28,6 +26,8 @@ import {
 import ThemeToggle from "../ThemeToggle";
 import { authClient, useSession } from "@/lib/auth-client";
 
+import { motion, AnimatePresence } from "framer-motion";
+
 const navLinks = [
   {
     title: "Home",
@@ -36,6 +36,10 @@ const navLinks = [
   {
     title: "Browse Books",
     href: "/books",
+  },
+  {
+    title: "Pricing",
+    href: "/pricing",
   },
 ];
 
@@ -58,11 +62,21 @@ export default function Navbar() {
 
   const [mounted, setMounted] = useState(false);
 
+  const [scrolled, setScrolled] = useState(false);
+
   const dropdownRef = useRef(null);
   
   useEffect(() => {
   setMounted(true);
 }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -95,12 +109,20 @@ export default function Navbar() {
 
     router.refresh();
   };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
     if (!mounted) {
   return null;
 }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--rr-hairline)] bg-[var(--rr-bg)]/80 backdrop-blur-md">
+    <header className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+      scrolled
+        ? "border-[var(--rr-hairline)] bg-[var(--rr-bg)] shadow-lg backdrop-blur-xl"
+        : "border-transparent bg-[var(--rr-bg)]/80 backdrop-blur-md"
+    }`}>
 
       <div className="container mx-auto flex h-20 items-center justify-between px-5">
 
@@ -108,9 +130,10 @@ export default function Navbar() {
 
         <Link
           href="/"
+          onClick={scrollToTop}
           className="flex items-center gap-3"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rr-ink)] text-[var(--rr-bg)] dark:bg-white dark:text-black">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--rr-ink)] text-[var(--rr-bg)]">
             <BookOpen size={24} />
           </div>
 
@@ -119,7 +142,7 @@ export default function Navbar() {
               BIBLIODROP
             </h2>
 
-            <p className="text-xs uppercase tracking-[4px] text-gray-500">
+            <p className="text-xs uppercase tracking-[4px] text-[var(--rr-ink-dim)]">
               Local Library Delivery
             </p>
           </div>
@@ -134,6 +157,7 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={item.href === "/" ? scrollToTop : undefined}
               className={`transition font-medium ${
                 pathname === item.href
                   ? "text-blue-600"
@@ -154,7 +178,7 @@ export default function Navbar() {
           <ThemeToggle />
 
           {isPending ? (
-            <div className="h-10 w-10 animate-pulse rounded-full bg-gray-300" />
+            <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--rr-surface-2)]" />
           ) : session?.user ? (
 
             <div
@@ -166,7 +190,7 @@ export default function Navbar() {
                 onClick={() =>
                   setDropdownOpen(!dropdownOpen)
                 }
-                className="flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-[var(--rr-surface-2)]"
               >
 
                 <Image
@@ -200,7 +224,7 @@ export default function Navbar() {
         {session.user?.name}
       </h3>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-[var(--rr-ink-dim)]">
         {session.user?.email}
       </p>
 
@@ -243,7 +267,7 @@ export default function Navbar() {
 
             <Link
               href="/login"
-              className="flex items-center gap-2 rounded-full border px-6 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-2 rounded-full border px-6 py-2 hover:bg-[var(--rr-surface-2)]"
             >
               <LogIn size={18} />
               Login
@@ -251,7 +275,7 @@ export default function Navbar() {
 
             <Link
               href="/register"
-              className="flex items-center gap-2 rounded-full bg-[var(--rr-ink)] px-6 py-2 text-[var(--rr-bg)] dark:bg-white dark:text-black"
+              className="flex items-center gap-2 rounded-full bg-[var(--rr-ink)] px-6 py-2 text-[var(--rr-bg)]"
             >
               <UserPlus size={18} />
               Register
@@ -271,18 +295,30 @@ export default function Navbar() {
 
   <button
     onClick={() => setOpen(!open)}
-    className="rounded-lg border p-2"
+    className="relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:bg-[var(--rr-surface-2)]"
+    aria-label={open ? "Close menu" : "Open menu"}
   >
-    {open ? <X /> : <Menu />}
+    <div className="flex flex-col items-center justify-center gap-1.5">
+      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "translate-y-[4px] rotate-45" : ""}`} />
+      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "scale-x-0" : ""}`} />
+      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "-translate-y-[4px] -rotate-45" : ""}`} />
+    </div>
   </button>
 
 </div>
 
 </div>
 
+<AnimatePresence>
 {open && (
 
-<div className="border-t border-[var(--rr-hairline)] bg-[var(--rr-bg)] md:hidden">
+<motion.div
+  initial={{ height: 0, opacity: 0 }}
+  animate={{ height: "auto", opacity: 1 }}
+  exit={{ height: 0, opacity: 0 }}
+  transition={{ duration: 0.3, ease: "easeInOut" }}
+  className="overflow-hidden border-t border-[var(--rr-hairline)] bg-[var(--rr-bg)] md:hidden"
+>
 
   <div className="flex flex-col gap-4 p-5">
 
@@ -291,7 +327,10 @@ export default function Navbar() {
       <Link
         key={item.href}
         href={item.href}
-        onClick={() => setOpen(false)}
+        onClick={() => {
+          setOpen(false);
+          if (item.href === "/") scrollToTop();
+        }}
         className={`${
           pathname === item.href
             ? "font-semibold text-blue-600"
@@ -325,7 +364,7 @@ export default function Navbar() {
               {session.user.name}
             </p>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--rr-ink-dim)]">
               {session.user.email}
             </p>
 
@@ -380,9 +419,11 @@ export default function Navbar() {
 
   </div>
 
-</div>
+</motion.div>
 
 )}
+
+</AnimatePresence>
 
 </header>
 

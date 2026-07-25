@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { useSession } from "@/lib/auth-client";
 
 export interface Review {
   _id: string;
@@ -49,6 +50,7 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [avgRating, setAvgRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
+  const { data: session } = useSession();
 
   const fetchReviews = useCallback(async (bookId: string) => {
     setLoading(true);
@@ -56,9 +58,9 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`/api/reviews?bookId=${bookId}`);
       if (res.ok) {
         const data = await res.json();
-        setReviews(data.reviews);
-        setAvgRating(data.avgRating);
-        setTotalReviews(data.totalReviews);
+        setReviews(data.reviews || []);
+        setAvgRating(data.avgRating || 0);
+        setTotalReviews(data.totalReviews || 0);
       }
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -73,9 +75,13 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`/api/reviews?userId=${userId}`);
       if (res.ok) {
         const data = await res.json();
-        setReviews(data.reviews);
-        setAvgRating(data.avgRating);
-        setTotalReviews(data.totalReviews);
+        // Filter out old anonymous entries
+        const reviews = (data.reviews || []).filter(
+          (r: Review) => r.userId && r.userId !== "anonymous"
+        );
+        setReviews(reviews);
+        setAvgRating(data.avgRating || 0);
+        setTotalReviews(reviews.length);
       }
     } catch (error) {
       console.error("Error fetching user reviews:", error);
@@ -83,6 +89,13 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }, []);
+
+  // Auto-fetch user reviews when session loads (handles page refresh)
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserReviews(session.user.id);
+    }
+  }, [session?.user?.id, fetchUserReviews]);
 
   const addReview = useCallback((review: Review) => {
     setReviews((prev) => {
@@ -103,11 +116,22 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateReview = useCallback(async (reviewId: string, data: { rating?: number; comment?: string }) => {
+    // Find existing review to preserve user data
+    const existing = reviews.find((r) => r._id === reviewId);
     try {
       const res = await fetch("/api/reviews", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewId, ...data }),
+        body: JSON.stringify({
+          reviewId,
+          userId: existing?.userId,
+          userName: existing?.userName,
+          userEmail: existing?.userEmail,
+          userImage: existing?.userImage,
+          bookId: existing?.bookId,
+          bookTitle: existing?.bookTitle,
+          ...data,
+        }),
       });
       if (res.ok) {
         const updated = await res.json();

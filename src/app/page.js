@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import Features from "@/components/Features";
 import FeaturedBooks from "@/components/FeaturedBooks";
 import PopularCategories from "@/components/PopularCategories";
 import HowItWorks from "@/components/HowItWorks";
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <div>
       <Hero />
+      <Features />
       <FeaturedBooks />
       <PopularCategories />
       <HowItWorks />

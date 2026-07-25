@@ -24,6 +24,7 @@ interface DeliveryContextValue {
   fetchDeliveries: (userId?: string) => Promise<void>;
   addDelivery: (delivery: Delivery) => void;
   updateDeliveryStatus: (id: string, status: Delivery["status"]) => Promise<void>;
+  hasExistingDelivery: (bookId: string) => Delivery | null;
 }
 
 const DeliveryContext = createContext<DeliveryContextValue>({
@@ -32,6 +33,7 @@ const DeliveryContext = createContext<DeliveryContextValue>({
   fetchDeliveries: async () => {},
   addDelivery: () => {},
   updateDeliveryStatus: async () => {},
+  hasExistingDelivery: () => null,
 });
 
 export function useDeliveries() {
@@ -51,7 +53,11 @@ export function DeliveryProvider({ children }: { children: ReactNode }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setDeliveries(data);
+        // Filter out old anonymous entries (created before user data was added to POST)
+        const filtered = Array.isArray(data)
+          ? data.filter((d: Delivery) => d.userId && d.userId !== "anonymous")
+          : [];
+        setDeliveries(filtered);
       }
     } catch (error) {
       console.error("Error fetching deliveries:", error);
@@ -64,32 +70,48 @@ export function DeliveryProvider({ children }: { children: ReactNode }) {
     setDeliveries((prev) => [delivery, ...prev]);
   }, []);
 
+  const hasExistingDelivery = useCallback(
+    (bookId: string): Delivery | null => {
+      return (
+        deliveries.find(
+          (d) =>
+            d.bookId === bookId &&
+            (d.status === "Pending" || d.status === "Dispatched" || d.status === "Delivered")
+        ) || null
+      );
+    },
+    [deliveries]
+  );
+
   const updateDeliveryStatus = useCallback(
     async (id: string, status: Delivery["status"]) => {
-      try {
-        const res = await fetch("/api/deliveries", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deliveryId: id, status }),
-        });
+      console.log(`[DeliveryContext] Updating delivery ${id} to ${status}`);
+      const res = await fetch("/api/deliveries", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryId: id, status }),
+      });
 
-        if (res.ok) {
-          setDeliveries((prev) =>
-            prev.map((d) =>
-              d._id === id ? { ...d, status, updatedAt: new Date().toISOString() } : d
-            )
-          );
-        }
-      } catch (error) {
-        console.error("Error updating delivery:", error);
+      const data = await res.json();
+      console.log(`[DeliveryContext] PATCH response:`, res.status, data);
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update delivery status");
       }
+
+      setDeliveries((prev) =>
+        prev.map((d) =>
+          d._id === id ? { ...d, status, updatedAt: new Date().toISOString() } : d
+        )
+      );
+      console.log(`[DeliveryContext] Local state updated for delivery ${id}`);
     },
     []
   );
 
   return (
     <DeliveryContext.Provider
-      value={{ deliveries, loading, fetchDeliveries, addDelivery, updateDeliveryStatus }}
+      value={{ deliveries, loading, fetchDeliveries, addDelivery, updateDeliveryStatus, hasExistingDelivery }}
     >
       {children}
     </DeliveryContext.Provider>

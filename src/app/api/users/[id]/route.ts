@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 // GET /api/users/[id] — Get single user
 export async function GET(
@@ -9,23 +9,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = await getDb();
-    const collection = db.collection("user");
 
-    const user = await collection.findOne({ _id: new ObjectId(id) });
+    // Backend doesn't have single user endpoint, so fetch all and filter
+    const res = await fetch(`${BACKEND_URL}/api/users`);
+    const users = await res.json();
+
+    const user = users.find((u: any) => u.id === id);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({
-      id: user._id?.toString() || "",
-      name: user.name || "",
-      email: user.email || "",
-      image: user.image || "",
-      role: user.role || "reader",
-      createdAt: user.createdAt,
-    });
+    return NextResponse.json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
     return NextResponse.json({ error: "Failed to fetch user" }, { status: 500 });
@@ -39,31 +34,22 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const db = await getDb();
-    const collection = db.collection("user");
-
     const body = await request.json();
     const { role } = body;
 
-    if (!role) {
-      return NextResponse.json({ error: "Role is required" }, { status: 400 });
+    const res = await fetch(`${BACKEND_URL}/api/users/${id}/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    const validRoles = ["admin", "librarian", "reader"];
-    if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
-
-    const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { role, updatedAt: new Date() } }
-    );
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error updating user role:", error);
     return NextResponse.json({ error: "Failed to update user role" }, { status: 500 });
@@ -77,16 +63,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const db = await getDb();
-    const collection = db.collection("user");
 
-    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    const res = await fetch(`${BACKEND_URL}/api/users/${id}`, {
+      method: "DELETE",
+    });
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(data, { status: res.status });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });

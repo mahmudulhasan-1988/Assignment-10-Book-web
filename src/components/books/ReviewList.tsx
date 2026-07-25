@@ -88,7 +88,8 @@ function ReviewCard({ review }: { review: Review }) {
 }
 
 export default function ReviewList({ bookId }: ReviewListProps) {
-  const { reviews, loading, avgRating, totalReviews, fetchReviews } = useReviews();
+  const { reviews: rawReviews, loading, avgRating, totalReviews, fetchReviews } = useReviews();
+  const reviews = rawReviews || [];
 
   useEffect(() => {
     fetchReviews(bookId);

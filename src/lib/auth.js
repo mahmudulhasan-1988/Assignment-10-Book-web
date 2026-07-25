@@ -36,4 +36,20 @@ export const auth = betterAuth({
       },
     },
   },
+
+
+  //Backend URL for the auth API
+  //   user: {
+  //   additionalFields: {
+  //     role: {
+  //       defaultValue: 'attendee',
+  //     },
+  //     isBlocked: {
+  //       defaultValue: false,
+  //     },
+  //     isPremium: {
+  //       defaultValue: false,
+  //     },
+  //   },
+  // },
 });
