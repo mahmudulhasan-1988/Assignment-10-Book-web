@@ -54,11 +54,17 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .toArray();
 
-    // Convert _id to string
+    // Convert _id to string and ensure required fields
     const serializedBooks = books.map((book) => ({
       ...book,
       _id: book._id.toString(),
       id: book._id.toString(),
+      status: book.status || "pending",
+      rating: book.rating || 0,
+      totalReviews: book.totalReviews || 0,
+      deliveryFee: book.deliveryFee || 0,
+      description: book.description || "",
+      isbn: book.isbn || "",
     }));
 
     return NextResponse.json({

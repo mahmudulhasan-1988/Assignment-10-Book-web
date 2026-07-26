@@ -41,7 +41,7 @@ export default function BookDetailModal({ book, onClose }: BookDetailModalProps)
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [addingToList, setAddingToList] = useState(false);
-  const statusConfig = STATUS_CONFIG[book.status];
+  const statusConfig = STATUS_CONFIG[book.status] || STATUS_CONFIG.available;
 
   const isLoggedIn = !!session?.user;
   const inReadingList = isInReadingList(book.id);

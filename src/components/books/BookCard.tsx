@@ -31,7 +31,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function BookCard({ book }: BookCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const statusConfig = STATUS_CONFIG[book.status];
+  const statusConfig = STATUS_CONFIG[book.status] || STATUS_CONFIG.available;
 
   return (
     <>

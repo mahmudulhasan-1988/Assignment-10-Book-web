@@ -81,7 +81,7 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
 
   const user = session?.user;
   const isLoggedIn = !!user;
-  const statusConfig = STATUS_CONFIG[book.status];
+  const statusConfig = STATUS_CONFIG[book.status] || STATUS_CONFIG.available;
   const inReadingList = isInReadingList(book.id);
 
   // Check if current user is the librarian who owns this book or an admin

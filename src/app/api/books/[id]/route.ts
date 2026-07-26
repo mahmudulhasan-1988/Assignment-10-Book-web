@@ -27,6 +27,12 @@ export async function GET(
       ...book,
       _id: book._id.toString(),
       id: book._id.toString(),
+      status: book.status || "pending",
+      rating: book.rating || 0,
+      totalReviews: book.totalReviews || 0,
+      deliveryFee: book.deliveryFee || 0,
+      description: book.description || "",
+      isbn: book.isbn || "",
     });
   } catch (error) {
     console.error("Error fetching book:", error);
