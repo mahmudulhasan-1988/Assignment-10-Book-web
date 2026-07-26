@@ -296,7 +296,7 @@ export default function ManageInventoryTable() {
                             <span className="text-xs text-[var(--rr-ink-dim)]">Delete?</span>
                             <button
                               onClick={() => handleDelete(book._id || book.id, book.title)}
-                              disabled={deleting === book._id || book.id}
+                              disabled={deleting === (book._id || book.id)}
                               className="flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
                             >
                               {deleting === (book._id || book.id) ? (
@@ -314,7 +314,7 @@ export default function ManageInventoryTable() {
                         ) : (
                           <>
                             <Link
-                              href={`/books/${book._id || book.id}`}
+                              href={`/books/${book._id || book.id}/edit`}
                               className="flex items-center gap-1 rounded-lg border border-[var(--rr-hairline)] px-3 py-1.5 text-xs font-medium text-[var(--rr-ink)] hover:bg-[var(--rr-surface-2)] transition-colors"
                               title="View/Edit book"
                             >
@@ -334,7 +334,7 @@ export default function ManageInventoryTable() {
                             {book.status === "available" && (
                               <button
                                 onClick={() => handleUnpublish(book._id || book.id, book.title)}
-                                disabled={unpublishing === book._id || book.id}
+                                disabled={unpublishing === (book._id || book.id)}
                                 className="flex items-center gap-1 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20 transition-colors disabled:opacity-50"
                                 title="Unpublish book"
                               >

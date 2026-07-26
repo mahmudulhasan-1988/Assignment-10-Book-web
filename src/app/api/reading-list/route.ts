@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+import { getDb } from "@/lib/mongodb";
 
 // GET /api/reading-list?userId=xxx — fetch user's reading list
 export async function GET(request: NextRequest) {
@@ -15,10 +14,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/reading-list?userId=${userId}`);
-    const data = await res.json();
+    const db = await getDb();
+    const collection = db.collection("readingList");
 
-    return NextResponse.json(data);
+    const items = await collection
+      .find({ userId })
+      .sort({ addedAt: -1 })
+      .toArray();
+
+    const serialized = items.map((item) => ({
+      ...item,
+      _id: item._id.toString(),
+      id: item._id.toString(),
+    }));
+
+    return NextResponse.json(serialized);
   } catch (error) {
     console.error("Error fetching reading list:", error);
     return NextResponse.json(
@@ -32,20 +42,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const db = await getDb();
+    const collection = db.collection("readingList");
 
-    const res = await fetch(`${BACKEND_URL}/api/reading-list`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+    // Check for duplicates
+    const existing = await collection.findOne({
+      userId: body.userId,
+      bookId: body.bookId,
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (existing) {
+      return NextResponse.json(
+        { error: "Book already in reading list" },
+        { status: 409 }
+      );
     }
 
-    return NextResponse.json(data, { status: 201 });
+    const newItem = {
+      ...body,
+      createdAt: new Date().toISOString(),
+    };
+
+    const result = await collection.insertOne(newItem);
+
+    return NextResponse.json(
+      { ...newItem, _id: result.insertedId.toString(), id: result.insertedId.toString() },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error adding to reading list:", error);
     return NextResponse.json(
@@ -55,7 +78,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/reading-list?bookId=xxx — remove from reading list
+// DELETE /api/reading-list?bookId=xxx&userId=xxx — remove from reading list
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -69,18 +92,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const url = userId
-      ? `${BACKEND_URL}/api/reading-list?bookId=${bookId}&userId=${userId}`
-      : `${BACKEND_URL}/api/reading-list?bookId=${bookId}`;
+    const db = await getDb();
+    const collection = db.collection("readingList");
 
-    const res = await fetch(url, { method: "DELETE" });
-    const data = await res.json();
-
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    const filter: Record<string, any> = { bookId };
+    if (userId) {
+      filter.userId = userId;
     }
 
-    return NextResponse.json(data);
+    const result = await collection.deleteOne(filter);
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: "Item not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: "Removed from reading list" });
   } catch (error) {
     console.error("Error removing from reading list:", error);
     return NextResponse.json(

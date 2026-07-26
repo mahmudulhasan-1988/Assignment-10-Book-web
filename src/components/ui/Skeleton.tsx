@@ -51,6 +51,8 @@ export function CardSkeleton() {
   );
 }
 
+const chartHeights = [45, 72, 58, 85, 63, 78];
+
 export function ChartSkeleton() {
   return (
     <div className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-5">
@@ -60,7 +62,7 @@ export function ChartSkeleton() {
           <Skeleton
             key={i}
             className="flex-1"
-            style={{ height: `${30 + Math.random() * 70}%` }}
+            style={{ height: `${chartHeights[i]}%` }}
           />
         ))}
       </div>

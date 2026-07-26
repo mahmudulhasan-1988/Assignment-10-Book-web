@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+import { getDb } from "@/lib/mongodb";
 
 // GET /api/books — fetch books with server-side pagination
 export async function GET(request: NextRequest) {
@@ -11,57 +10,66 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "12", 10);
 
-    // Build query string for backend
-    const backendParams = new URLSearchParams();
-    searchParams.forEach((value, key) => {
-      if (key !== "page" && key !== "limit") {
-        backendParams.set(key, value);
-      }
-    });
-    backendParams.set("page", page.toString());
-    backendParams.set("limit", limit.toString());
+    const db = await getDb();
+    const collection = db.collection("books");
 
-    const queryString = backendParams.toString();
-    const url = `${BACKEND_URL}/api/books${queryString ? `?${queryString}` : ""}`;
+    // Build filter from query params
+    const filter: Record<string, any> = {};
+    const category = searchParams.get("category");
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+    const sort = searchParams.get("sort");
 
-    const res = await fetch(url);
-    const data = await res.json();
-
-    // If backend returns paginated response
-    if (data.books && data.pagination) {
-      return NextResponse.json(data);
+    if (category && category !== "All") {
+      filter.category = category;
+    }
+    if (status) {
+      filter.status = status;
+    }
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { author: { $regex: search, $options: "i" } },
+      ];
     }
 
-    // If backend returns plain array, handle pagination here
-    if (Array.isArray(data)) {
-      const total = data.length;
-      const totalPages = Math.ceil(total / limit);
-      const startIndex = (page - 1) * limit;
-      const paginatedBooks = data.slice(startIndex, startIndex + limit);
+    // Build sort
+    let sortObj: Record<string, 1 | -1> = { createdAt: -1 };
+    if (sort === "newest") sortObj = { createdAt: -1 };
+    else if (sort === "oldest") sortObj = { createdAt: 1 };
+    else if (sort === "price_low") sortObj = { deliveryFee: 1 };
+    else if (sort === "price_high") sortObj = { deliveryFee: -1 };
+    else if (sort === "rating") sortObj = { rating: -1 };
+    else if (sort === "title_az") sortObj = { title: 1 };
+    else if (sort === "title_za") sortObj = { title: -1 };
 
-      return NextResponse.json({
-        books: paginatedBooks,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
-        },
-      });
-    }
+    const total = await collection.countDocuments(filter);
+    const totalPages = Math.ceil(total / limit);
+    const startIndex = (page - 1) * limit;
 
-    // Fallback: wrap data
+    const books = await collection
+      .find(filter)
+      .sort(sortObj)
+      .skip(startIndex)
+      .limit(limit)
+      .toArray();
+
+    // Convert _id to string
+    const serializedBooks = books.map((book) => ({
+      ...book,
+      _id: book._id.toString(),
+      id: book._id.toString(),
+    }));
+
     return NextResponse.json({
-      books: Array.isArray(data) ? data : [data],
+      books: serializedBooks,
       pagination: {
-        page: 1,
+        page,
         limit,
-        total: Array.isArray(data) ? data.length : 1,
-        totalPages: 1,
-        hasNext: false,
-        hasPrev: false,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
       },
     });
   } catch (error) {
@@ -77,20 +85,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const db = await getDb();
+    const collection = db.collection("books");
 
-    const res = await fetch(`${BACKEND_URL}/api/books`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const newBook = {
+      ...body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      rating: body.rating || 0,
+      totalReviews: body.totalReviews || 0,
+    };
 
-    const data = await res.json();
+    const result = await collection.insertOne(newBook);
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
-    }
-
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(
+      { ...newBook, _id: result.insertedId.toString(), id: result.insertedId.toString() },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating book:", error);
     return NextResponse.json(
@@ -113,19 +124,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/books/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
+    const { ObjectId } = await import("mongodb");
+    const db = await getDb();
+    const collection = db.collection("books");
 
-    const data = await res.json();
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { ...updates, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" }
+    );
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (!result) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...result,
+      _id: result._id.toString(),
+      id: result._id.toString(),
+    });
   } catch (error) {
     console.error("Error updating book:", error);
     return NextResponse.json(
@@ -148,17 +165,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/books/${id}`, {
-      method: "DELETE",
-    });
+    const { ObjectId } = await import("mongodb");
+    const db = await getDb();
+    const collection = db.collection("books");
 
-    const data = await res.json();
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ message: "Book deleted successfully" });
   } catch (error) {
     console.error("Error deleting book:", error);
     return NextResponse.json(

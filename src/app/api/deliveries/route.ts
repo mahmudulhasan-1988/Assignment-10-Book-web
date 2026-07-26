@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
 
 // GET /api/deliveries?userId=xxx
 export async function GET(request: NextRequest) {
@@ -8,14 +8,26 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
-    const url = userId
-      ? `${BACKEND_URL}/api/deliveries?userId=${userId}`
-      : `${BACKEND_URL}/api/deliveries`;
+    const db = await getDb();
+    const collection = db.collection("deliveries");
 
-    const res = await fetch(url);
-    const data = await res.json();
+    const filter: Record<string, any> = {};
+    if (userId) {
+      filter.userId = userId;
+    }
 
-    return NextResponse.json(data);
+    const deliveries = await collection
+      .find(filter)
+      .sort({ requestDate: -1 })
+      .toArray();
+
+    const serialized = deliveries.map((d) => ({
+      ...d,
+      _id: d._id.toString(),
+      id: d._id.toString(),
+    }));
+
+    return NextResponse.json(serialized);
   } catch (error) {
     console.error("Error fetching deliveries:", error);
     return NextResponse.json(
@@ -29,20 +41,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const db = await getDb();
+    const collection = db.collection("deliveries");
 
-    const res = await fetch(`${BACKEND_URL}/api/deliveries`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const newDelivery = {
+      ...body,
+      status: "Pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-    const data = await res.json();
+    const result = await collection.insertOne(newDelivery);
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
-    }
-
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(
+      { ...newDelivery, _id: result.insertedId.toString(), id: result.insertedId.toString() },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating delivery:", error);
     return NextResponse.json(
@@ -65,19 +79,24 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/deliveries/${deliveryId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateFields),
-    });
+    const db = await getDb();
+    const collection = db.collection("deliveries");
 
-    const data = await res.json();
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(deliveryId) },
+      { $set: { ...updateFields, updatedAt: new Date().toISOString() } },
+      { returnDocument: "after" }
+    );
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (!result) {
+      return NextResponse.json({ error: "Delivery not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...result,
+      _id: result._id.toString(),
+      id: result._id.toString(),
+    });
   } catch (error) {
     console.error("Error updating delivery:", error);
     return NextResponse.json(

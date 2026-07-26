@@ -79,8 +79,8 @@ export default function StatsOverview() {
             <div key={i} className="rounded-xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] p-5">
               <div className="mb-4 h-4 w-40 animate-pulse rounded bg-[var(--rr-surface-2)]" />
               <div className="flex items-end gap-2 h-[200px]">
-                {Array.from({ length: 6 }).map((_, j) => (
-                  <div key={j} className="flex-1 animate-pulse rounded bg-[var(--rr-surface-2)]" style={{ height: `${30 + Math.random() * 70}%` }} />
+                {[45, 72, 58, 85, 63, 78].map((h, j) => (
+                  <div key={j} className="flex-1 animate-pulse rounded bg-[var(--rr-surface-2)]" style={{ height: `${h}%` }} />
                 ))}
               </div>
             </div>

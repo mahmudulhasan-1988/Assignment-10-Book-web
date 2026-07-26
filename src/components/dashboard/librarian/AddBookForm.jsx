@@ -13,11 +13,13 @@ import {
 } from "lucide-react";
 import { CATEGORIES } from "@/lib/books-data";
 import { uploadImageToImgBB } from "@/lib/imgbb";
+import { useSession } from "@/lib/auth-client";
 
 const CATEGORY_OPTIONS = CATEGORIES.filter((c) => c !== "All");
 
 export default function AddBookForm() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     title: "",
     author: "",
@@ -96,6 +98,9 @@ export default function AddBookForm() {
           coverImage,
           isbn: formData.isbn,
           publishedYear: parseInt(formData.publishedYear) || new Date().getFullYear(),
+          status: "pending",
+          ownerId: session?.user?.id || "",
+          ownerName: session?.user?.name || "",
         }),
       });
 

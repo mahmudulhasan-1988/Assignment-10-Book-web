@@ -102,8 +102,8 @@ export default function OverviewCharts() {
             <div className="h-[240px]">
               {loading ? (
                 <div className="flex h-full items-end gap-3 px-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="flex-1 animate-pulse rounded-t bg-[var(--rr-surface-2)]" style={{ height: `${20 + Math.random() * 80}%` }} />
+                  {[35, 65, 50, 80, 45, 70].map((h, i) => (
+                    <div key={i} className="flex-1 animate-pulse rounded-t bg-[var(--rr-surface-2)]" style={{ height: `${h}%` }} />
                   ))}
                 </div>
               ) : monthlyReads.length === 0 ? (

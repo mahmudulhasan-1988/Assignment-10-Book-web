@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+import { ObjectId } from "mongodb";
+import { getDb } from "@/lib/mongodb";
 
 // GET /api/users — Get all users
 export async function GET() {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/users`);
-    const data = await res.json();
+    const db = await getDb();
+    const collection = db.collection("user");
 
-    return NextResponse.json(data);
+    const users = await collection.find({}).toArray();
+
+    const serialized = users.map((u) => ({
+      ...u,
+      _id: u._id.toString(),
+      id: u._id.toString(),
+    }));
+
+    return NextResponse.json(serialized);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
@@ -31,19 +39,29 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/users`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, role, name, image }),
-    });
+    const db = await getDb();
+    const collection = db.collection("user");
 
-    const data = await res.json();
+    const updateData: Record<string, any> = {};
+    if (role !== undefined) updateData.role = role;
+    if (name !== undefined) updateData.name = name;
+    if (image !== undefined) updateData.image = image;
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: "after" }
+    );
+
+    if (!result) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...result,
+      _id: result._id.toString(),
+      id: result._id.toString(),
+    });
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
@@ -66,17 +84,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const res = await fetch(`${BACKEND_URL}/api/users?id=${id}`, {
-      method: "DELETE",
-    });
+    const db = await getDb();
+    const collection = db.collection("user");
 
-    const data = await res.json();
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
 
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({ message: "User deleted" });
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(
