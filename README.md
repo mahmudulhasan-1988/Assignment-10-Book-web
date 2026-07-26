@@ -1,194 +1,174 @@
-# BiblioDrop - Local Library Delivery System
+# 📚 BiblioDrop – Local Library Delivery System
 
-A modern web application for managing library book deliveries, built with Next.js 16 and React 19.
+> **A modern full-stack library management and delivery platform built with Next.js, React, MongoDB, and Better Auth.**
 
-## Features
+BiblioDrop is designed to simplify library operations by connecting **Readers**, **Librarians**, and **Administrators** in a single digital platform. Users can browse books, manage reading lists, track deliveries, subscribe to premium plans, and enjoy a seamless reading experience through an intuitive and responsive interface.
 
-- **Book Management** - Browse, search, and manage library books
-- **Delivery Tracking** - Track book deliveries with real-time status updates
-- **User Roles** - Admin, Librarian, and Reader dashboards
-- **Authentication** - Email/Password, Google OAuth, and GitHub OAuth
-- **Payment Processing** - Stripe integration for premium subscriptions
-- **Reviews & Ratings** - User reviews for books
-- **Reading Lists** - Personal reading list management
-- **Image Upload** - IMGbb integration for book cover images
+---
 
-## Tech Stack
+# ✨ Key Features
 
-| Category | Technology |
-|----------|------------|
-| **Framework** | Next.js 16.2.10 |
-| **UI Library** | React 19.2.4 |
-| **Styling** | Tailwind CSS 4 |
-| **UI Components** | HeroUI (formerly NextUI) |
-| **Database** | MongoDB with Mongoose 9.7.4 |
-| **Authentication** | Better Auth 1.6.23 |
-| **Payment** | Stripe 22.3.2 |
-| **Animations** | Framer Motion 12.42.2 |
-| **Forms** | React Hook Form 7.82.0 |
-| **Charts** | Recharts 3.9.2 |
-| **Icons** | Lucide React, React Icons |
-| **Notifications** | Sonner, React Hot Toast |
+### 📚 Smart Book Management
 
-## Prerequisites
+* Browse and search books with advanced filtering.
+* Add, edit, update, and delete books.
+* Upload high-quality book cover images.
+* Organize books by category and availability.
 
-- Node.js 18+ 
-- npm or yarn
-- MongoDB Atlas account (or local MongoDB)
-- Stripe account (for payment features)
-- IMGbb account (for image uploads)
+### 🚚 Delivery Management
 
-## Environment Variables
+* Request book deliveries online.
+* Track delivery status in real time.
+* Manage delivery workflow efficiently.
 
-Create a `.env.local` file in the root directory:
+### 👥 Role-Based Dashboard
 
-```env
-# MongoDB
-MONGODB_URI=your_mongodb_connection_string
-DB_NAME=your_database_name
+* **Admin Dashboard**
 
-# Better Auth
-BETTER_AUTH_SECRET=your_auth_secret
-BETTER_AUTH_URL=http://localhost:3000
+  * Manage users
+  * Manage books
+  * Monitor deliveries
+  * View platform statistics
 
-# OAuth (optional)
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GITHUB_ID=your_github_client_id
-GITHUB_SECRET=your_github_client_secret
+* **Librarian Dashboard**
 
-# IMGbb (for image uploads)
-NEXT_PUBLIC_IMGBB_API_KEY=your_imgbb_api_key
+  * Add and manage books
+  * Handle delivery requests
+  * Maintain library inventory
 
-# Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
+* **Reader Dashboard**
 
-# Server URL (for API proxy)
-NEXT_PUBLIC_SERVER_URL=http://localhost:5000
+  * Borrow books
+  * Track deliveries
+  * Manage reading lists
+  * Update profile
+
+### 🔐 Authentication & Security
+
+* Email & Password Authentication
+* Google Login
+* GitHub Login
+* Protected Routes
+* Role-Based Authorization
+
+### 💳 Premium Subscription
+
+* Stripe Payment Integration
+* Premium Membership
+* Subscription Management
+
+### ⭐ Community Features
+
+* Book Reviews & Ratings
+* Personalized Reading Lists
+* User Profile Management
+
+### 📱 Responsive Design
+
+* Mobile Friendly
+* Tablet Optimized
+* Desktop Responsive
+* Modern UI with HeroUI & Tailwind CSS
+
+---
+
+# 🛠 Tech Stack
+
+| Category        | Technology           |
+| --------------- | -------------------- |
+| Frontend        | Next.js 16, React 19 |
+| Styling         | Tailwind CSS 4       |
+| UI Components   | HeroUI               |
+| Database        | MongoDB, Mongoose    |
+| Authentication  | Better Auth          |
+| Payment Gateway | Stripe               |
+| Image Hosting   | IMGbb                |
+| Form Management | React Hook Form      |
+| Animation       | Framer Motion        |
+| Charts          | Recharts             |
+
+---
+
+# 📂 Project Structure
+
+```text
+src
+├── app
+├── components
+├── hooks
+├── lib
+├── types
+└── utils
 ```
 
-## Installation
+---
 
-1. Clone the repository:
-```bash
-git clone https://github.com/your-username/assignment-10-bibliodrop-web.git
-cd assignment-10-bibliodrop-web
-```
+# 🔗 API Endpoints
 
-2. Install dependencies:
-```bash
-npm install
-```
+| Endpoint            | Description         |
+| ------------------- | ------------------- |
+| `/api/books`        | Book Management     |
+| `/api/reviews`      | Reviews & Ratings   |
+| `/api/deliveries`   | Delivery Management |
+| `/api/reading-list` | Reading List        |
+| `/api/users`        | User Management     |
+| `/api/upload`       | Image Upload        |
+| `/api/subscription` | Stripe Subscription |
+| `/api/auth`         | Authentication      |
 
-3. Set up environment variables (see above)
+---
 
-4. Run the development server:
-```bash
-npm run dev
-```
+# 🎯 Core Functionalities
 
-5. Open [http://localhost:3000](http://localhost:3000)
+* Library Book Management
+* Book Delivery Tracking
+* User Authentication
+* Role-Based Access Control
+* Premium Subscription System
+* Reading List Management
+* Reviews & Ratings
+* Image Upload System
 
-## Available Scripts
+---
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js development server |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run server` | Start Express backend server |
-| `npm run server:dev` | Start backend with file watching |
+# 🚀 Future Improvements
 
-## Project Structure
+* Email Notifications
+* Live Chat Support
+* QR Code Book Borrowing
+* Barcode Scanner Integration
+* AI Book Recommendation
+* Dark/Light Theme Toggle
+* Multi-language Support
 
-```
-src/
-├── app/                    # Next.js App Router pages
-│   ├── about/             # About page
-│   ├── books/             # Books listing
-│   ├── contact/           # Contact page
-│   ├── dashboard/         # Dashboard routes
-│   │   ├── admin/         # Admin dashboard
-│   │   ├── librarian/     # Librarian dashboard
-│   │   └── reader/        # Reader dashboard
-│   ├── login/             # Login page
-│   ├── pricing/           # Pricing plans
-│   ├── profile/           # User profile
-│   ├── register/          # Registration
-│   ├── settings/          # User settings
-│   └── api/               # API routes
-├── components/            # React components
-│   ├── admin/             # Admin-specific components
-│   ├── books/             # Book-related components
-│   ├── dashboard/         # Dashboard components
-│   ├── Layout/            # Layout components
-│   ├── profile/           # Profile components
-│   └── ui/                # Reusable UI components
-├── hooks/                 # Custom React hooks
-├── lib/                   # Utilities and configurations
-│   ├── actions/           # Server actions
-│   ├── api/               # API client functions
-│   ├── auth.js            # Better Auth configuration
-│   ├── mongodb.ts         # MongoDB connection
-│   └── stripe.js          # Stripe configuration
-├── types/                 # TypeScript type definitions
-└── utils/                 # Utility functions
-```
+---
 
-## Key Features
+# 🤝 Contributing
 
-### Authentication
-- Email/Password authentication via Better Auth
-- Social login with Google and GitHub
-- Role-based access control (Admin, Librarian, Reader)
+Contributions are welcome!
 
-### Book Management
-- CRUD operations for books
-- Image upload via IMGbb
-- Book categorization and search
-- Pagination support
+1. Fork this repository.
+2. Create a new feature branch.
+3. Commit your changes.
+4. Push your branch.
+5. Open a Pull Request.
 
-### Delivery System
-- Delivery status tracking
-- Delivery context for state management
-- Real-time status updates
+---
 
-### Payments
-- Stripe integration for subscriptions
-- Premium user features
-- Subscription management
+# 📄 License
 
-## API Routes
+This project was developed as part of the **Programming Hero Web Development Course**.
 
-The application uses Next.js API routes with proxy to an Express backend:
+---
 
-- `/api/books` - Book CRUD operations
-- `/api/reviews` - Book reviews
-- `/api/deliveries` - Delivery management
-- `/api/reading-list` - User reading lists
-- `/api/users` - User management
-- `/api/upload` - Image uploads
-- `/api/subscription` - Stripe subscriptions
-- `/api/auth` - Authentication endpoints
+# ❤️ Acknowledgements
 
-## Contributing
+Special thanks to the amazing open-source community and the technologies that made this project possible.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is part of Assignment-10 for Programming Hero's Web Development Course.
-
-## Acknowledgments
-
-- [Next.js](https://nextjs.org/) - The React Framework
-- [HeroUI](https://heroui.com/) - UI Component Library
-- [MongoDB](https://www.mongodb.com/) - Database
-- [Stripe](https://stripe.com/) - Payment Processing
-- [Better Auth](https://www.better-auth.com/) - Authentication
+* Next.js
+* React
+* MongoDB
+* Better Auth
+* Stripe
+* HeroUI
+* Tailwind CSS
