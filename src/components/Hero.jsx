@@ -455,3 +455,6 @@ export default function Hero() {
     </section>
   );
 }
+
+
+// this is checking the commit history of the Hero.jsx file. The code above is the current content of the file, and it has not been deleted or removed in recent edits.
