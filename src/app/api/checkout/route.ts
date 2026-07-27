@@ -25,8 +25,7 @@ export async function POST(request: Request) {
           currency: "usd",
           product_data: {
             name: `Book Delivery: ${bookTitle}`,
-            description: `Delivery subscription for ${bookTitle}`,
-            images: bookCover ? [bookCover] : [],
+            description: `Delivery fee for "${bookTitle}"`,
           },
           unit_amount: unitAmount,
         },

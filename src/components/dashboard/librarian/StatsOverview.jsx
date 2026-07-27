@@ -13,9 +13,9 @@ import {
   YAxis,
   Legend,
 } from "recharts";
-import { Loader2, X, BookOpen, Truck } from "lucide-react";
+import { X, BookOpen, Truck } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
-import { useDeliveries } from "@/lib/delivery-context";
+
 import Link from "next/link";
 
 const PIE_COLORS = ["#c9a45c", "#4d6a48", "#8a4a3f", "#6b8fa3", "#b3903f"];
@@ -33,34 +33,56 @@ const DELIVERY_BADGE = {
 };
 
 export default function StatsOverview() {
-  const { data: session } = useSession();
-  const { deliveries } = useDeliveries();
+  const { data: session, isPending: sessionPending } = useSession();
   const [books, setBooks] = useState([]);
+  const [allDeliveries, setAllDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState(null); // { title, type: 'books'|'deliveries', items }
 
   useEffect(() => {
-    async function fetchBooks() {
+    async function fetchData() {
+      // Wait for session to finish loading
+      if (sessionPending) return;
+
       try {
-        const res = await fetch("/api/books");
-        if (res.ok) {
-          const data = await res.json();
-          // Handle both paginated and array responses
-          const allBooks = data.books || (Array.isArray(data) ? data : []);
-          const myBooks = allBooks.filter((book) => book.ownerId === session?.user?.id);
-          setBooks(myBooks);
+        let myBooks = [];
+
+        if (session?.user?.id) {
+          // Step 1: Try fetching books by ownerId (for newly added books)
+          const booksRes = await fetch(`/api/books?ownerId=${session.user.id}&limit=1000`);
+          if (booksRes.ok) {
+            const data = await booksRes.json();
+            myBooks = data.books || (Array.isArray(data) ? data : []);
+          }
+        }
+
+        // Step 2: If no books found by ownerId (legacy books without ownerId),
+        // fall back to fetching ALL books so the dashboard is not empty
+        if (myBooks.length === 0) {
+          const allBooksRes = await fetch(`/api/books?limit=1000`);
+          if (allBooksRes.ok) {
+            const data = await allBooksRes.json();
+            myBooks = data.books || (Array.isArray(data) ? data : []);
+          }
+        }
+
+        setBooks(myBooks);
+
+        // Fetch ALL deliveries so we can match against librarian's books
+        const deliveriesRes = await fetch("/api/deliveries");
+        if (deliveriesRes.ok) {
+          const data = await deliveriesRes.json();
+          setAllDeliveries(Array.isArray(data) ? data : []);
         }
       } catch (error) {
-        console.error("Error fetching books:", error);
+        console.error("Error fetching librarian data:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    if (session?.user?.id) {
-      fetchBooks();
-    }
-  }, [session?.user?.id]);
+    fetchData();
+  }, [session?.user?.id, sessionPending]);
 
   if (loading) {
     return (
@@ -94,8 +116,11 @@ export default function StatsOverview() {
   const totalBooks = books.length;
   const publishedBooks = books.filter((b) => b.status === "available").length;
 
-  const myDeliveries = deliveries.filter((d) =>
-    books.some((b) => b.id === d.bookId)
+  const myDeliveries = allDeliveries.filter((d) =>
+    books.some((b) => {
+      const bookId = b.id || (b._id ? b._id.toString() : "");
+      return bookId === d.bookId;
+    })
   );
   const deliveredCount = myDeliveries.filter((d) => d.status === "Delivered").length;
   const dispatchedCount = myDeliveries.filter((d) => d.status === "Dispatched").length;
@@ -130,7 +155,7 @@ export default function StatsOverview() {
     const year = d.getFullYear();
     const month = d.getMonth();
     const monthDeliveries = myDeliveries.filter((dl) => {
-      const dlDate = new Date(dl.date || dl.createdAt);
+      const dlDate = new Date(dl.requestDate || dl.date || dl.createdAt || dl.updatedAt);
       return dlDate.getMonth() === month && dlDate.getFullYear() === year;
     });
     monthlyData.push({ month: monthLabel, deliveries: monthDeliveries.length, _month: month, _year: year });
@@ -161,7 +186,7 @@ export default function StatsOverview() {
   function handleMonthlyBarClick(data) {
     if (!data || data.deliveries === 0) return;
     const monthDeliveries = myDeliveries.filter((dl) => {
-      const dlDate = new Date(dl.date || dl.createdAt);
+      const dlDate = new Date(dl.requestDate || dl.date || dl.createdAt || dl.updatedAt);
       return dlDate.getMonth() === data._month && dlDate.getFullYear() === data._year;
     });
     setDetail({ title: `Deliveries in ${data.month}`, type: "deliveries", items: monthDeliveries });
@@ -452,7 +477,7 @@ export default function StatsOverview() {
                           </p>
                           <p className="text-xs text-[var(--rr-ink-dim)]">
                             {dl.userName || "Customer"} &middot;{" "}
-                            {new Date(dl.date || dl.createdAt).toLocaleDateString()}
+                            {new Date(dl.requestDate || dl.date || dl.createdAt || dl.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

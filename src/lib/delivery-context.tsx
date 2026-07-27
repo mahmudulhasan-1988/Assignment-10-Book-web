@@ -56,10 +56,7 @@ export function DeliveryProvider({ children }: { children: ReactNode }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        // Filter out old anonymous entries (created before user data was added to POST)
-        const filtered = Array.isArray(data)
-          ? data.filter((d: Delivery) => d.userId && d.userId !== "anonymous")
-          : [];
+        const filtered = Array.isArray(data) ? data : [];
         setDeliveries(filtered);
       }
     } catch (error) {

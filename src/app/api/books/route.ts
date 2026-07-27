@@ -19,12 +19,16 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const search = searchParams.get("search");
     const sort = searchParams.get("sort");
+    const ownerId = searchParams.get("ownerId");
 
     if (category && category !== "All") {
       filter.category = category;
     }
     if (status) {
       filter.status = status;
+    }
+    if (ownerId) {
+      filter.ownerId = ownerId;
     }
     if (search) {
       filter.$or = [
