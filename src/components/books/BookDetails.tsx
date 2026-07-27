@@ -27,6 +27,7 @@ import { useDeliveries } from "@/lib/delivery-context";
 import { useReadingList } from "@/lib/reading-list-context";
 import ReviewList from "./ReviewList";
 import ReviewModal from "./ReviewModal";
+import RequestDeliveryModal from "./RequestDeliveryModal";
 
 interface Book {
   _id?: string;
@@ -67,6 +68,7 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
   const [imageError, setImageError] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [addingToList, setAddingToList] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   // Re-fetch book data to get updated rating
   async function refreshBook() {
@@ -99,38 +101,9 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
     });
   }
 
-  async function handleRequestDelivery() {
+  function handleRequestDelivery() {
     if (!isLoggedIn || book.status !== "available" || existingDelivery) return;
-
-    setPaymentStep("processing");
-
-    try {
-      // Simulate Stripe checkout (in real app, this would redirect to Stripe)
-      // For now, we'll create the delivery directly
-      const res = await fetch("/api/deliveries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: session?.user?.id,
-          userName: session?.user?.name || "Anonymous",
-          userEmail: session?.user?.email || "",
-          bookId: book.id,
-          bookTitle: book.title,
-          bookAuthor: book.author,
-          bookCover: book.coverImage,
-          deliveryFee: book.deliveryFee,
-        }),
-      });
-
-      if (res.ok) {
-        setPaymentStep("success");
-      } else {
-        const data = await res.json();
-        setPaymentStep("error");
-      }
-    } catch {
-      setPaymentStep("error");
-    }
+    setShowRequestModal(true);
   }
 
   async function handleDelete() {
@@ -482,6 +455,18 @@ export default function BookDetails({ book: initialBook }: { book: Book }) {
           onClose={() => {
             setShowReviewModal(false);
             refreshBook();
+          }}
+        />
+      )}
+
+      {/* Request Delivery Modal */}
+      {showRequestModal && (
+        <RequestDeliveryModal
+          book={book}
+          onClose={() => setShowRequestModal(false)}
+          onConfirm={() => {
+            setShowRequestModal(false);
+            setPaymentStep("success");
           }}
         />
       )}

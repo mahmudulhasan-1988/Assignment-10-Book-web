@@ -33,6 +33,8 @@ interface Transaction {
   userEmail?: string;
   deliveryFee?: number;
   status: string;
+  paymentStatus?: string;
+  category?: string;
   requestDate?: string;
   createdAt?: string;
   updatedAt?: string;

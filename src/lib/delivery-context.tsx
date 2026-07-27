@@ -14,7 +14,10 @@ export interface Delivery {
   bookCover: string;
   deliveryFee: number;
   status: "Pending" | "Dispatched" | "Delivered";
+  paymentStatus?: string;
+  category?: string;
   requestDate: string;
+  createdAt?: string;
   updatedAt: string;
 }
 

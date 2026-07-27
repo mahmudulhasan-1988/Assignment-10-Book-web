@@ -45,39 +45,62 @@ export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestM
     year: "numeric",
   });
 
-  async function handleConfirm() {
-    if (!isLoggedIn) return;
+  const STRIPE_CHECKOUT_URL = "https://checkout.stripe.com/c/pay/cs_test_a1VQ02rOrEt0BR119U386sGBP8ygUWp4N5I2cLZm5V9p8UV1ReYXuQyY32#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRRc3d%2FVzFDR1dwaTUwTjZ%2FQ01EYXdLdU09U1ZwQ1NuREEzcXA8bFZ%2FfEZ0V1ZScDdPUnVpUGBoYTNAcVQwV0hGaUl9a0FVaH9XSEtHfVJkSGk8RFdOSEw1NWRxZHd3MFZnJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl";
 
+  async function handleConfirm() {
     setStep("loading");
 
     try {
+      // Save delivery & transaction into MongoDB first
       const res = await fetch("/api/deliveries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: session?.user?.id,
+          userId: session?.user?.id || "anonymous",
           userName: session?.user?.name || "Anonymous",
           userEmail: session?.user?.email || "",
-          bookId: book.id,
-          bookTitle: book.title,
-          bookAuthor: book.author,
-          bookCover: book.coverImage,
-          deliveryFee: book.deliveryFee,
+          bookId: book.id || (book as any)._id || "",
+          bookTitle: book.title || "",
+          bookAuthor: book.author || "",
+          bookCover: book.coverImage || "",
+          deliveryFee: book.deliveryFee || 0,
+          category: book.category || "",
+          status: "Pending",
+          paymentStatus: "Successful",
+          requestDate: new Date().toISOString(),
         }),
       });
 
       if (res.ok) {
         const delivery: Delivery = await res.json();
         addDelivery(delivery);
-        setStep("success");
-      } else {
-        const data = await res.json();
-        setErrorMsg(data.error || "Failed to create delivery request");
-        setStep("error");
       }
+
+      // Create dynamic Stripe checkout session with exact book price
+      const checkoutRes = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookTitle: book.title || "Book Delivery",
+          deliveryFee: book.deliveryFee || 0,
+          bookCover: book.coverImage || "",
+          bookId: book.id || (book as any)._id || "",
+        }),
+      });
+
+      if (checkoutRes.ok) {
+        const checkoutData = await checkoutRes.json();
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+          return;
+        }
+      }
+
+      // Fallback redirect to Stripe Checkout URL
+      window.location.href = STRIPE_CHECKOUT_URL;
     } catch {
-      setErrorMsg("Network error. Please try again.");
-      setStep("error");
+      // Fallback redirect to Stripe Checkout URL
+      window.location.href = STRIPE_CHECKOUT_URL;
     }
   }
 
@@ -154,12 +177,12 @@ export default function DeliveryRequestModal({ book, onClose }: DeliveryRequestM
               {/* Delivery Details */}
               <div className="mb-6 space-y-3">
                 <div className="flex items-center justify-between rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3">
-                  <div className="flex items-center gap-2 text-sm text-[var(--rr-ink-dim)]">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[var(--rr-ink)]">
                     <Truck size={16} className="text-[var(--rr-gold)]" />
-                    Delivery Fee
+                    Book Price / Delivery Fee
                   </div>
-                  <span className="text-sm font-semibold text-[var(--rr-ink)]">
-                    ${book.deliveryFee.toFixed(2)}
+                  <span className="text-base font-bold text-[var(--rr-gold)]">
+                    ${book.deliveryFee ? book.deliveryFee.toFixed(2) : "0.00"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-[var(--rr-hairline)] bg-[var(--rr-surface)] px-4 py-3">

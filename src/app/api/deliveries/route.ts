@@ -46,9 +46,11 @@ export async function POST(request: NextRequest) {
 
     const newDelivery = {
       ...body,
-      status: "Pending",
+      status: body.status || "Pending",
+      paymentStatus: body.paymentStatus || "Pending",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      requestDate: body.requestDate || new Date().toISOString(),
     };
 
     const result = await collection.insertOne(newDelivery);

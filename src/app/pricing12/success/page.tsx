@@ -15,9 +15,11 @@ export default function PricingSuccessPage() {
     setSessionId(searchParams.get("session_id"));
   }, [searchParams]);
 
+  console.log(sessionId);
+
   return (
     <section className="min-h-[70vh] flex items-center justify-center py-20 bg-[var(--rr-bg)]">
-      <div className="container mx-auto px-6 lg:px-12">
+      {/* <div className="container mx-auto px-6 lg:px-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -86,7 +88,7 @@ export default function PricingSuccessPage() {
             </Link>
           </motion.div>
         </motion.div>
-      </div>
+      </div> */}
     </section>
   );
 }
