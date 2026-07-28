@@ -45,13 +45,13 @@ const navLinks = [
 
 export default function Navbar() {
   // const [session, setSession] = useState(null);
-// session is provided by `authClient.useSession()` below; no local setter needed
-  
+  // session is provided by `authClient.useSession()` below; no local setter needed
+
   const router = useRouter();
   // const {data: session} = useSession()
   const pathname = usePathname();
 
-  
+
   const { data: session, isPending } =
     authClient.useSession();
 
@@ -65,10 +65,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   const dropdownRef = useRef(null);
-  
+
   useEffect(() => {
-  setMounted(true);
-}, []);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -113,16 +113,15 @@ export default function Navbar() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-    if (!mounted) {
-  return null;
-}
+  if (!mounted) {
+    return null;
+  }
 
   return (
-    <header className={`sticky top-0 z-50 border-b transition-all duration-300 ${
-      scrolled
-        ? "border-[var(--rr-hairline)] bg-[var(--rr-bg)] shadow-lg backdrop-blur-xl"
-        : "border-transparent bg-[var(--rr-bg)]/80 backdrop-blur-md"
-    }`}>
+    <header className={`sticky top-0 z-50 border-b transition-all duration-300 ${scrolled
+      ? "border-[var(--rr-hairline)] bg-[var(--rr-bg)] shadow-lg backdrop-blur-xl"
+      : "border-transparent bg-[var(--rr-bg)]/80 backdrop-blur-md"
+      }`}>
 
       <div className="container mx-auto flex h-20 items-center justify-between px-5">
 
@@ -158,11 +157,10 @@ export default function Navbar() {
               key={item.href}
               href={item.href}
               onClick={item.href === "/" ? scrollToTop : undefined}
-              className={`transition font-medium ${
-                pathname === item.href
-                  ? "text-blue-600"
-                  : "hover:text-blue-600"
-              }`}
+              className={`transition font-medium ${pathname === item.href
+                ? "text-blue-600"
+                : "hover:text-blue-600"
+                }`}
             >
               {item.title}
             </Link>
@@ -207,79 +205,79 @@ export default function Navbar() {
                 <ChevronDown size={18} />
 
               </button>
-          {dropdownOpen && (
-  <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] shadow-xl">
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-[var(--rr-hairline)] bg-[var(--rr-surface)] shadow-xl">
 
-    <div className="border-b p-5 text-center">
+                  <div className="border-b p-5 text-center">
 
-      <Image
-        src={session.user?.image || "/default-avatar.png"}
-        alt={session.user?.name || "User"}
-        width={70}
-        height={70}
-        className="mx-auto h-[70px] w-[70px] rounded-full object-cover"
-      />
+                    <Image
+                      src={session.user?.image || "/default-avatar.png"}
+                      alt={session.user?.name || "User"}
+                      width={70}
+                      height={70}
+                      className="mx-auto h-[70px] w-[70px] rounded-full object-cover"
+                    />
 
-      <h3 className="mt-3 font-semibold">
-        {session.user?.name}
-      </h3>
+                    <h3 className="mt-3 font-semibold">
+                      {session.user?.name}
+                    </h3>
 
-      <p className="text-sm text-[var(--rr-ink-dim)]">
-        {session.user?.email}
-      </p>
+                    <p className="text-sm text-[var(--rr-ink-dim)]">
+                      {session.user?.email}
+                    </p>
 
-    </div>
+                  </div>
 
-    <Link
-      href="/profile"
-      onClick={() => setDropdownOpen(false)}
-      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
-    >
-      <User size={18} />
-      Profile
-    </Link>
+                  <Link
+                    href="/profile"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
+                  >
+                    <User size={18} />
+                    Profile
+                  </Link>
 
-    <Link
-      href={`/dashboard/${session.user?.role || ""}`}
-      onClick={() => setDropdownOpen(false)}
-      className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
-    >
-      <LayoutDashboard size={18} />
-      Dashboard
-    </Link>
+                  <Link
+                    href={`/dashboard/${session.user?.role || ""}`}
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
+                  >
+                    <LayoutDashboard size={18} />
+                    Dashboard
+                  </Link>
 
-    <button
-      onClick={handleLogout}
-      className="flex w-full items-center gap-3 px-5 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
-    >
-      <LogOut size={18} />
-      Logout
-    </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-5 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                  >
+                    <LogOut size={18} />
+                    Logout
+                  </button>
 
-  </div>
-)}
+                </div>
+              )}
 
-</div>
+            </div>
 
           ) : (
 
             <>
 
-            <Link
-              href="/login"
-              className="flex items-center gap-2 rounded-full border px-6 py-2 hover:bg-[var(--rr-surface-2)]"
-            >
-              <LogIn size={18} />
-              Login
-            </Link>
+              <Link
+                href="/login"
+                className="flex items-center gap-2 rounded-full border px-6 py-2 hover:bg-[var(--rr-surface-2)]"
+              >
+                <LogIn size={18} />
+                Login
+              </Link>
 
-            <Link
-              href="/register"
-              className="flex items-center gap-2 rounded-full bg-[var(--rr-ink)] px-6 py-2 text-[var(--rr-bg)]"
-            >
-              <UserPlus size={18} />
-              Register
-            </Link>
+              <Link
+                href="/register"
+                className="flex items-center gap-2 rounded-full bg-[var(--rr-ink)] px-6 py-2 text-[var(--rr-bg)]"
+              >
+                <UserPlus size={18} />
+                Register
+              </Link>
 
             </>
 
@@ -287,145 +285,144 @@ export default function Navbar() {
 
         </div>
 
-{/* Mobile */}
+        {/* Mobile */}
 
-<div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
 
-  <ThemeToggle />
+          <ThemeToggle />
 
-  <button
-    onClick={() => setOpen(!open)}
-    className="relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:bg-[var(--rr-surface-2)]"
-    aria-label={open ? "Close menu" : "Open menu"}
-  >
-    <div className="flex flex-col items-center justify-center gap-1.5">
-      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "translate-y-[4px] rotate-45" : ""}`} />
-      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "scale-x-0" : ""}`} />
-      <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "-translate-y-[4px] -rotate-45" : ""}`} />
-    </div>
-  </button>
-
-</div>
-
-</div>
-
-<AnimatePresence>
-{open && (
-
-<motion.div
-  initial={{ height: 0, opacity: 0 }}
-  animate={{ height: "auto", opacity: 1 }}
-  exit={{ height: 0, opacity: 0 }}
-  transition={{ duration: 0.3, ease: "easeInOut" }}
-  className="overflow-hidden border-t border-[var(--rr-hairline)] bg-[var(--rr-bg)] md:hidden"
->
-
-  <div className="flex flex-col gap-4 p-5">
-
-    {navLinks.map((item) => (
-
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={() => {
-          setOpen(false);
-          if (item.href === "/") scrollToTop();
-        }}
-        className={`${
-          pathname === item.href
-            ? "font-semibold text-blue-600"
-            : ""
-        }`}
-      >
-        {item.title}
-      </Link>
-
-    ))}
-
-    <hr />
-
-    {session?.user ? (
-
-      <>
-
-        <div className="flex items-center gap-3">
-
-          <Image
-            src={session.user.image || "/default-avatar.png"}
-            alt={session.user.name}
-            width={45}
-            height={45}
-            className="rounded-full"
-          />
-
-          <div>
-
-            <p className="font-semibold">
-              {session.user.name}
-            </p>
-
-            <p className="text-xs text-[var(--rr-ink-dim)]">
-              {session.user.email}
-            </p>
-
-          </div>
+          <button
+            onClick={() => setOpen(!open)}
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:bg-[var(--rr-surface-2)]"
+            aria-label={open ? "Close menu" : "Open menu"}
+          >
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "translate-y-[4px] rotate-45" : ""}`} />
+              <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "scale-x-0" : ""}`} />
+              <span className={`block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ${open ? "-translate-y-[4px] -rotate-45" : ""}`} />
+            </div>
+          </button>
 
         </div>
 
-        <Link
-          href="/profile"
-          onClick={() => setOpen(false)}
-        >
-          Profile
-        </Link>
+      </div>
 
-        <Link
-          href="/dashboard"
-          onClick={() => setOpen(false)}
-        >
-          Dashboard
-        </Link>
+      <AnimatePresence>
+        {open && (
 
-        <button
-          onClick={handleLogout}
-          className="text-left text-red-500"
-        >
-          Logout
-        </button>
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden border-t border-[var(--rr-hairline)] bg-[var(--rr-bg)] md:hidden"
+          >
 
-      </>
+            <div className="flex flex-col gap-4 p-5">
 
-    ) : (
+              {navLinks.map((item) => (
 
-      <>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => {
+                    setOpen(false);
+                    if (item.href === "/") scrollToTop();
+                  }}
+                  className={`${pathname === item.href
+                    ? "font-semibold text-blue-600"
+                    : ""
+                    }`}
+                >
+                  {item.title}
+                </Link>
 
-        <Link
-          href="/login"
-          onClick={() => setOpen(false)}
-        >
-          Login
-        </Link>
+              ))}
 
-        <Link
-          href="/register"
-          onClick={() => setOpen(false)}
-        >
-          Register
-        </Link>
+              <hr />
 
-      </>
+              {session?.user ? (
 
-    )}
+                <>
 
-  </div>
+                  <div className="flex items-center gap-3">
 
-</motion.div>
+                    <Image
+                      src={session.user.image || "/default-avatar.png"}
+                      alt={session.user.name}
+                      width={45}
+                      height={45}
+                      className="rounded-full"
+                    />
 
-)}
+                    <div>
 
-</AnimatePresence>
+                      <p className="font-semibold">
+                        {session.user.name}
+                      </p>
 
-</header>
+                      <p className="text-xs text-[var(--rr-ink-dim)]">
+                        {session.user.email}
+                      </p>
 
-);
+                    </div>
+
+                  </div>
+
+                  <Link
+                    href="/profile"
+                    onClick={() => setOpen(false)}
+                  >
+                    Profile
+                  </Link>
+
+                  <Link
+                    href={`/dashboard/${session.user?.role || ""}`}
+                    onClick={() => setOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    className="text-left text-red-500"
+                  >
+                    Logout
+                  </button>
+
+                </>
+
+              ) : (
+
+                <>
+
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                  >
+                    Login
+                  </Link>
+
+                  <Link
+                    href="/register"
+                    onClick={() => setOpen(false)}
+                  >
+                    Register
+                  </Link>
+
+                </>
+
+              )}
+
+            </div>
+
+          </motion.div>
+
+        )}
+
+      </AnimatePresence>
+
+    </header>
+
+  );
 }
