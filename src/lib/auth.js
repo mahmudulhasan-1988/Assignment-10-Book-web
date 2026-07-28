@@ -17,16 +17,16 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID || 'placeholder-google-client-id',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder-google-client-secret',
     },
-    github:{
+    github: {
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
     },
-    
+
   },
   user: {
     additionalFields: {
       role: {
-        defaultValue: 'attendee',
+        defaultValue: 'reader',
       },
       isBlocked: {
         defaultValue: false,
