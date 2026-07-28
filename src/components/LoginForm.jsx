@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 
 import {
   Card,
@@ -17,8 +19,10 @@ import GoogleButton from "@/components/GoogleButton";
 import useLogin from "@/hooks/useLogin";
 import { IoIosRadioButtonOff } from "react-icons/io";
 import { TbCheckbox } from "react-icons/tb";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginForm() {
+  const [googleLoading, setGoogleLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -29,6 +33,26 @@ export default function LoginForm() {
 
   const onSubmit = async (data) => {
     await loginUser(data);
+  };
+
+  // ====google login=====
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.error(error.message || "Google Login failed");
+      }
+    } catch (err) {
+      console.error("Google login error:", err);
+      toast.error("Google Login failed");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -98,12 +122,9 @@ export default function LoginForm() {
               />
             </div>
           </div>
-
-        
-
         </div>
 
-       
+
 
         {/* Remember */}
 
@@ -141,11 +162,12 @@ export default function LoginForm() {
 
         {/* Google */}
 
-              {/* Google */}
-
+       
         <button
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
           type="button"
-          className="flex w-full items-center justify-center gap-3 rounded-full border py-4 hover:bg-slate-50"
+          className="flex w-full items-center justify-center gap-3 rounded-full border py-4 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
           <img
             src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -153,7 +175,7 @@ export default function LoginForm() {
             className="h-5 w-5"
           />
 
-          Continue with Google
+          {googleLoading ? "Connecting..." : "Continue with Google"}
         </button>
 
         {/* Login */}

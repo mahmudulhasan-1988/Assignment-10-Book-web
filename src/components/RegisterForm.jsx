@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -11,6 +12,7 @@ import { uploadImage } from "@/utils/uploadImage";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const {
     register,
@@ -59,6 +61,26 @@ export default function RegisterForm() {
     } catch (err) {
       console.log(err);
       toast.error("Something went wrong!");
+    }
+  };
+
+  // ========= google signup =========
+  const handleGoogleSignUp = async () => {
+    try {
+      setGoogleLoading(true);
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.error(error.message || "Google Sign Up failed");
+      }
+    } catch (err) {
+      console.error("Google sign up error:", err);
+      toast.error("Google Sign Up failed");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -259,8 +281,10 @@ export default function RegisterForm() {
 
         {/* Google */}
         <button
+          onClick={handleGoogleSignUp}
+          disabled={googleLoading}
           type="button"
-          className="flex w-full items-center justify-center gap-3 rounded-full border py-4 hover:bg-slate-50"
+          className="flex w-full items-center justify-center gap-3 rounded-full border py-4 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
           <img
             src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -268,7 +292,7 @@ export default function RegisterForm() {
             className="h-5 w-5"
           />
 
-          Continue with Google
+          {googleLoading ? "Connecting..." : "Continue with Google"}
         </button>
 
         {/* Login */}
