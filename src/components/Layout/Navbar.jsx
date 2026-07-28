@@ -55,6 +55,11 @@ export default function Navbar() {
   const { data: session, isPending } =
     authClient.useSession();
 
+  const rawRole = session?.user?.role;
+  const userRole = (rawRole === "admin" || rawRole === "librarian" || rawRole === "reader")
+    ? rawRole
+    : "reader";
+
   const [open, setOpen] = useState(false);
 
   const [dropdownOpen, setDropdownOpen] =
@@ -238,7 +243,7 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href={`/dashboard/${session.user?.role || ""}`}
+                    href={`/dashboard/${userRole}`}
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--rr-surface-2)]"
                   >
@@ -377,7 +382,7 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href={`/dashboard/${session.user?.role || ""}`}
+                    href={`/dashboard/${userRole}`}
                     onClick={() => setOpen(false)}
                   >
                     Dashboard
